@@ -1,14 +1,36 @@
 import ZAI from "z-ai-web-dev-sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 /**
  * Shared AI helper for NutriFit.
- * z-ai-web-dev-sdk MUST run on the backend only — this module is only
- * imported from server / route-handler code.
+ *
+ * Dual-provider: uses Google Gemini when GEMINI_API_KEY is set (production /
+ * Vercel), and falls back to the z-ai-web-dev-sdk (sandbox) otherwise. This
+ * keeps the sandbox working without a key while making the app deployable.
+ *
+ * This module is server-only — never import from client code.
  */
 
+// --- Gemini (production) ---
+let geminiModel: ReturnType<
+  GoogleGenerativeAI["getGenerativeModel"]
+> | null = null;
+
+function getGeminiModel() {
+  if (geminiModel) return geminiModel;
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) return null;
+  const genAI = new GoogleGenerativeAI(key);
+  geminiModel = genAI.getGenerativeModel({
+    model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+  });
+  return geminiModel;
+}
+
+// --- z-ai SDK (sandbox fallback) ---
 let zaiPromise: Promise<ZAI> | null = null;
 
-export async function getZAI(): Promise<ZAI> {
+async function getZAI(): Promise<ZAI> {
   if (!zaiPromise) {
     zaiPromise = ZAI.create();
   }
@@ -17,12 +39,29 @@ export async function getZAI(): Promise<ZAI> {
 
 /**
  * Run a single completion turn and return the raw text content.
- * The "assistant" role carries the system prompt per the SDK convention.
+ * The "assistant" role carries the system prompt per the z-ai SDK convention;
+ * Gemini receives it as the first user-turn message.
  */
 export async function aiComplete(
   systemPrompt: string,
   userPrompt: string
 ): Promise<string> {
+  // Prefer Gemini in production.
+  const model = getGeminiModel();
+  if (model) {
+    try {
+      const result = await model.generateContent(
+        `${systemPrompt}\n\n${userPrompt}`
+      );
+      const text = result.response.text();
+      if (text && text.trim()) return text.trim();
+    } catch (err) {
+      console.error("Gemini completion failed, falling back:", err);
+      // fall through to z-ai SDK if Gemini errors
+    }
+  }
+
+  // Sandbox fallback (z-ai-web-dev-sdk).
   const zai = await getZAI();
   const completion = await zai.chat.completions.create({
     messages: [
@@ -37,8 +76,7 @@ export async function aiComplete(
 
 /**
  * Extract a JSON value from an LLM response that may be wrapped in
- * ```json ... ``` fences or contain stray prose. Falls back to scanning
- * for the first balanced {/[ and last }/].
+ * ```json ... ``` fences or contain stray prose.
  */
 export function extractJSON<T = unknown>(raw: string): T {
   if (!raw) throw new Error("Empty AI response");
