@@ -333,3 +333,191 @@ html {
   .nf-blob { animation: none; }
   .nf-glow::before { animation: none; }
 }
+
+/* ============================================================
+   NutriFit Premium 2026 — SaaS-grade glass, motion & depth
+   ============================================================ */
+
+/* Aurora gradient border card — the signature premium surface */
+.nf-premium {
+  position: relative;
+  background: oklch(1 0 0 / 0.72);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid oklch(1 0 0 / 0.7);
+  box-shadow:
+    0 1px 0 0 oklch(1 0 0 / 0.9) inset,
+    0 0 0 1px oklch(0.6 0.12 185 / 0.08),
+    0 20px 50px -20px oklch(0.55 0.14 200 / 0.22),
+    0 8px 24px -12px oklch(0.4 0.1 200 / 0.12);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.nf-premium:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 1px 0 0 oklch(1 0 0 / 0.9) inset,
+    0 0 0 1px oklch(0.6 0.12 185 / 0.14),
+    0 30px 60px -20px oklch(0.55 0.14 200 / 0.3),
+    0 12px 32px -12px oklch(0.4 0.1 200 / 0.18);
+}
+
+/* Animated gradient border (conic) for hero cards */
+.nf-aurora-border {
+  position: relative;
+  isolation: isolate;
+}
+.nf-aurora-border::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--nf-angle, 0deg),
+    oklch(0.7 0.16 200),
+    oklch(0.72 0.16 170),
+    oklch(0.78 0.18 145),
+    oklch(0.7 0.14 220),
+    oklch(0.7 0.16 200)
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  z-index: -1;
+  animation: nf-spin-border 6s linear infinite;
+}
+@property --nf-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes nf-spin-border {
+  to { --nf-angle: 360deg; }
+}
+
+/* Shimmer sweep (skeleton + button shine) */
+.nf-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.nf-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    oklch(1 0 0 / 0.35) 45%,
+    oklch(1 0 0 / 0.55) 50%,
+    oklch(1 0 0 / 0.35) 55%,
+    transparent 70%
+  );
+  transform: translateX(-100%);
+  animation: nf-shimmer-sweep 2.4s ease-in-out infinite;
+}
+@keyframes nf-shimmer-sweep {
+  100% { transform: translateX(100%); }
+}
+
+/* Glow ring for active/interactive elements */
+.nf-ring-glow {
+  box-shadow:
+    0 0 0 1px oklch(0.6 0.14 185 / 0.3),
+    0 0 24px -4px oklch(0.6 0.14 185 / 0.45);
+}
+
+/* Premium stat number — tabular, gradient text option */
+.nf-stat {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "ss01";
+  letter-spacing: -0.02em;
+}
+
+/* Animated gradient text (slow shift) */
+.nf-text-aurora {
+  background: linear-gradient(
+    100deg,
+    oklch(0.55 0.16 200),
+    oklch(0.6 0.16 175),
+    oklch(0.62 0.18 150),
+    oklch(0.55 0.16 200)
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: nf-text-shift 6s ease-in-out infinite;
+}
+@keyframes nf-text-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Subtle grain/noise overlay for depth (used on dark hero cards) */
+.nf-grain {
+  position: relative;
+}
+.nf-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Soft floating orb (premium background accent) */
+.nf-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(60px);
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* Recharts premium overrides */
+.recharts-default-tooltip {
+  background: oklch(1 0 0 / 0.85) !important;
+  backdrop-filter: blur(12px);
+  border: 1px solid oklch(1 0 0 / 0.7) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 12px 32px -12px oklch(0.4 0.1 200 / 0.3) !important;
+  padding: 10px 14px !important;
+}
+.recharts-tooltip-label {
+  font-weight: 800 !important;
+  color: oklch(0.2 0.02 256) !important;
+  margin-bottom: 4px !important;
+}
+.recharts-cartesian-axis-tick-value {
+  font-weight: 600;
+}
+.recharts-surface {
+  overflow: visible;
+}
+
+/* Spring entrance presets (use with framer-motion via className hooks) */
+.nf-stagger > * {
+  opacity: 0;
+  animation: nf-rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.nf-stagger > *:nth-child(1) { animation-delay: 0.05s; }
+.nf-stagger > *:nth-child(2) { animation-delay: 0.12s; }
+.nf-stagger > *:nth-child(3) { animation-delay: 0.19s; }
+.nf-stagger > *:nth-child(4) { animation-delay: 0.26s; }
+.nf-stagger > *:nth-child(5) { animation-delay: 0.33s; }
+.nf-stagger > *:nth-child(6) { animation-delay: 0.40s; }
+@keyframes nf-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nf-aurora-border::before,
+  .nf-shimmer::after,
+  .nf-text-aurora,
+  .nf-stagger > * { animation: none; }
+  .nf-stagger > * { opacity: 1; }
+}

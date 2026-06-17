@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ShoppingBag,
   Star,
@@ -9,6 +10,8 @@ import {
   ShoppingCart,
   ArrowRight,
 } from "lucide-react";
+import { AnimatedNumber } from "./AnimatedNumber";
+import { staggerContainer, riseItem, springSoft } from "./motion";
 
 type Product = {
   id: string;
@@ -193,16 +196,28 @@ export default function WellnessStoreTab() {
       : products.filter((p) => p.category === activeCategory);
 
   return (
-    <div className="space-y-8 animate-fadeIn text-slate-800">
+    <div className="space-y-8 text-slate-800">
       {/* 1. TOP MARKETPLACE MARKETING BANNER */}
-      <div className="bg-linear-to-r from-emerald-500/10 via-teal-500/5 to-transparent border border-emerald-100 rounded-3xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden backdrop-blur-md">
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+        className="nf-premium rounded-3xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden"
+      >
+        {/* Aurora wash overlay */}
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent" />
+
         <div className="flex items-center gap-4">
-          <div className="p-3.5 bg-white border border-emerald-100 text-emerald-600 rounded-2xl shadow-xs">
+          <motion.div
+            whileHover={{ rotate: -6, scale: 1.05 }}
+            transition={springSoft}
+            className="p-3.5 bg-gradient-to-br from-white to-emerald-50 border border-emerald-100 text-emerald-600 rounded-2xl shadow-lg shadow-emerald-500/10"
+          >
             <ShoppingBag size={26} />
-          </div>
+          </motion.div>
           <div>
             <h3 className="text-2xl font-black tracking-tight">
-              Wellness Store Marketplace
+              <span className="nf-text-aurora">Wellness Store Marketplace</span>
             </h3>
             <p className="text-sm text-slate-400 font-bold uppercase tracking-wider mt-1">
               Premium Biometric Enhancers & Fueling Pipelines
@@ -211,55 +226,100 @@ export default function WellnessStoreTab() {
         </div>
 
         {/* Real-time Shopping Cart Count Badge */}
-        <div className="flex items-center gap-2.5 px-4 py-2.5 bg-slate-900 border border-slate-800 text-white rounded-xl text-sm font-bold shadow-md">
+        <motion.div
+          whileHover={{ y: -2 }}
+          transition={springSoft}
+          className="relative flex items-center gap-2.5 px-4 py-2.5 bg-slate-900 border border-slate-800 text-white rounded-xl text-sm font-bold shadow-lg shadow-slate-900/20 nf-ring-glow"
+        >
           <ShoppingCart size={16} className="text-teal-400" />
           <span>
             Cart Manifest:{" "}
-            <span className="font-mono font-black text-emerald-400">
-              {cartCount}
-            </span>{" "}
+            <AnimatedNumber
+              value={cartCount}
+              className="font-mono font-black text-emerald-400"
+            />{" "}
             items
           </span>
-        </div>
-      </div>
+          {cartCount > 0 && (
+            <motion.span
+              key={cartCount}
+              initial={{ scale: 0.4, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={springSoft}
+              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-[10px] font-black text-white flex items-center justify-center shadow-md shadow-emerald-500/40"
+            >
+              {cartCount}
+            </motion.span>
+          )}
+        </motion.div>
+      </motion.div>
 
       {/* 2. CATEGORY SEGMENTATION FILTERS */}
-      <div className="flex flex-wrap items-center gap-3 border-b border-slate-200/60 pb-5">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="flex flex-wrap items-center gap-3 border-b border-slate-200/60 pb-5"
+      >
         <div className="text-slate-400 p-1.5 shrink-0 flex items-center gap-1 text-sm font-bold uppercase tracking-wider">
           <Filter size={14} /> Segment:
         </div>
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setActiveCategory(cat)}
-            className={`px-4 py-2.5 rounded-xl text-sm font-bold tracking-wide transition-all cursor-pointer border ${
-              activeCategory === cat
-                ? "bg-linear-to-r from-emerald-500 to-teal-500 text-white border-transparent shadow-xs"
-                : "bg-white border-slate-200/80 text-slate-500 hover:border-slate-300 hover:text-slate-800"
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
+        {categories.map((cat) => {
+          const isActive = activeCategory === cat;
+          return (
+            <motion.button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.96 }}
+              transition={springSoft}
+              className={`relative px-4 py-2.5 rounded-xl text-sm font-bold tracking-wide cursor-pointer border transition-colors ${
+                isActive
+                  ? "text-white border-transparent"
+                  : "bg-white/60 backdrop-blur-md border-slate-200/80 text-slate-500 hover:border-slate-300 hover:text-slate-800"
+              }`}
+            >
+              {isActive && (
+                <motion.span
+                  layoutId="activeStoreCategory"
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  className="absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 shadow-md shadow-teal-500/30 nf-ring-glow"
+                />
+              )}
+              <span className="relative z-10">{cat}</span>
+            </motion.button>
+          );
+        })}
+      </motion.div>
 
       {/* 3. DYNAMIC PRODUCTS ARCHITECTURE GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+      <motion.div
+        variants={staggerContainer}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8"
+      >
         {filteredProducts.map((product) => (
-          <div
+          <motion.div
             key={product.id}
+            variants={riseItem}
+            whileHover={{ y: -6, scale: 1.02 }}
+            whileTap={{ scale: 0.99 }}
+            transition={springSoft}
             onClick={() => setSelectedProduct(product)}
-            className="bg-white border border-slate-200/60 rounded-3xl overflow-hidden shadow-xl shadow-slate-200/5 flex flex-col justify-between group hover:border-slate-300 transition-all duration-300 cursor-pointer hover:-translate-y-0.5"
+            className="nf-premium rounded-3xl overflow-hidden flex flex-col justify-between group cursor-pointer"
           >
             {/* Image Wrap */}
             <div className="relative h-52 overflow-hidden bg-slate-100">
               <img
                 src={product.image}
                 alt={product.name}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 loading="lazy"
               />
-              <span className="absolute top-3 left-3 bg-white/95 backdrop-blur-md border border-slate-200 px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider text-slate-600 shadow-xs">
+              {/* gradient veil for legibility */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-60" />
+              <span className="absolute top-3 left-3 bg-white/85 backdrop-blur-md border border-white/60 px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider text-slate-600 shadow-sm">
                 {product.category}
               </span>
             </div>
@@ -284,7 +344,7 @@ export default function WellnessStoreTab() {
             </div>
 
             {/* Price & Checkout Action Strip */}
-            <div className="px-6 pb-6 pt-2 flex items-center justify-between gap-4 bg-linear-to-t from-slate-50/40 to-transparent">
+            <div className="px-6 pb-6 pt-2 flex items-center justify-between gap-4 bg-gradient-to-t from-slate-50/50 to-transparent">
               <div className="flex flex-col">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
                   Pricing Matrix
@@ -294,78 +354,102 @@ export default function WellnessStoreTab() {
                 </span>
               </div>
 
-              <button
+              <motion.button
                 onClick={(e) => {
                   e.stopPropagation();
                   setCartCount((prev) => prev + 1);
                 }}
-                className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider shadow-md flex items-center gap-1.5 transition-all cursor-pointer active:scale-98"
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+                transition={springSoft}
+                className="relative overflow-hidden bg-gradient-to-r from-slate-900 to-slate-800 hover:from-cyan-600 hover:to-emerald-600 text-white px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-slate-900/20 flex items-center gap-1.5 cursor-pointer transition-colors"
               >
                 <span>Deploy to Cart</span>
                 <ArrowRight size={12} />
-              </button>
+              </motion.button>
             </div>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
       {/* 4. PRODUCT DETAILS LIGHTBOX EXPANSION OVERLAY */}
-      {selectedProduct && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white border border-slate-200/80 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl relative animate-fadeIn">
-            <button
-              onClick={() => setSelectedProduct(null)}
-              className="absolute top-4 right-4 bg-white/80 backdrop-blur-md text-slate-500 hover:text-slate-800 p-2 rounded-full border border-slate-200/60 transition-colors cursor-pointer z-10"
+      <AnimatePresence>
+        {selectedProduct && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            onClick={() => setSelectedProduct(null)}
+            className="fixed inset-0 bg-slate-900/50 backdrop-blur-md z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 12 }}
+              transition={{ type: "spring", stiffness: 280, damping: 26 }}
+              onClick={(e) => e.stopPropagation()}
+              className="nf-premium rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl relative"
             >
-              <X size={16} />
-            </button>
+              <motion.button
+                onClick={() => setSelectedProduct(null)}
+                whileHover={{ rotate: 90, scale: 1.05 }}
+                transition={springSoft}
+                className="absolute top-4 right-4 bg-white/85 backdrop-blur-md text-slate-500 hover:text-slate-800 p-2 rounded-full border border-white/60 shadow-md z-10 cursor-pointer"
+              >
+                <X size={16} />
+              </motion.button>
 
-            <div className="h-56 bg-slate-100">
-              <img
-                src={selectedProduct.image}
-                alt={selectedProduct.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div className="space-y-1">
-                <span className="text-xs font-black uppercase text-teal-600 bg-teal-50 px-2.5 py-1 rounded-md border border-teal-100/50">
-                  {selectedProduct.category}
-                </span>
-                <h4 className="text-2xl font-black text-slate-900 tracking-tight pt-2">
-                  {selectedProduct.name}
-                </h4>
+              <div className="h-56 bg-slate-100 overflow-hidden">
+                <img
+                  src={selectedProduct.image}
+                  alt={selectedProduct.name}
+                  className="w-full h-full object-cover"
+                />
               </div>
 
-              <p className="text-base text-slate-500 leading-relaxed font-medium">
-                {selectedProduct.desc}
-              </p>
-
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-                <div className="flex flex-col">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    Total cost
+              <div className="p-6 space-y-4">
+                <div className="space-y-1">
+                  <span className="text-xs font-black uppercase text-teal-600 bg-teal-50 px-2.5 py-1 rounded-md border border-teal-100/50">
+                    {selectedProduct.category}
                   </span>
-                  <span className="text-2xl font-mono font-black text-slate-900">
-                    {selectedProduct.price}
-                  </span>
+                  <h4 className="text-2xl font-black text-slate-900 tracking-tight pt-2">
+                    {selectedProduct.name}
+                  </h4>
                 </div>
 
-                <button
-                  onClick={() => {
-                    setCartCount((prev) => prev + 1);
-                    setSelectedProduct(null);
-                  }}
-                  className="bg-linear-to-r from-emerald-500 to-teal-500 text-white px-6 py-3.5 rounded-xl text-sm font-black uppercase tracking-wider shadow-lg shadow-teal-500/10 hover:opacity-95 transition-all cursor-pointer"
-                >
-                  Add To Basket
-                </button>
+                <p className="text-base text-slate-500 leading-relaxed font-medium">
+                  {selectedProduct.desc}
+                </p>
+
+                <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                      Total cost
+                    </span>
+                    <span className="text-2xl font-mono font-black text-slate-900">
+                      {selectedProduct.price}
+                    </span>
+                  </div>
+
+                  <motion.button
+                    onClick={() => {
+                      setCartCount((prev) => prev + 1);
+                      setSelectedProduct(null);
+                    }}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={springSoft}
+                    className="nf-btn-gradient px-6 py-3.5 rounded-xl text-sm font-black uppercase tracking-wider shadow-lg shadow-teal-500/10 cursor-pointer"
+                  >
+                    Add To Basket
+                  </motion.button>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

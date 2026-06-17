@@ -1,9 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/useAuthStore";
 import type { MealEstimate } from "@/lib/types";
+import { AnimatedNumber } from "./AnimatedNumber";
+import {
+  GlassCard,
+  staggerContainer,
+  riseItem,
+  scaleIn,
+  springSoft,
+} from "./motion";
 import {
   Apple,
   Utensils,
@@ -24,6 +33,40 @@ const quickPrompts = [
   "Grilled salmon with brown rice",
   "Greek yogurt with honey and berries",
 ];
+
+const macroStyles: Record<
+  string,
+  { from: string; to: string; text: string; bar: string; halo: string }
+> = {
+  Calories: {
+    from: "#fb923c",
+    to: "#f59e0b",
+    text: "text-orange-600",
+    bar: "from-orange-400 to-amber-500",
+    halo: "bg-orange-400",
+  },
+  Protein: {
+    from: "#fb7185",
+    to: "#ec4899",
+    text: "text-rose-600",
+    bar: "from-rose-400 to-pink-500",
+    halo: "bg-rose-400",
+  },
+  Carbs: {
+    from: "#fbbf24",
+    to: "#eab308",
+    text: "text-amber-600",
+    bar: "from-amber-400 to-yellow-500",
+    halo: "bg-amber-400",
+  },
+  Fat: {
+    from: "#38bdf8",
+    to: "#06b6d4",
+    text: "text-sky-600",
+    bar: "from-sky-400 to-cyan-500",
+    halo: "bg-sky-400",
+  },
+};
 
 export default function NutritionTab() {
   const { user } = useAuthStore();
@@ -85,11 +128,20 @@ export default function NutritionTab() {
   const historyItems = history;
 
   return (
-    <div className="space-y-8 animate-fadeIn">
+    <motion.div
+      variants={staggerContainer}
+      initial="hidden"
+      animate="show"
+      className="space-y-8"
+    >
       {/* TOP BANNER */}
-      <div className="bg-linear-to-r from-emerald-500/10 via-teal-500/5 to-transparent border border-emerald-100 rounded-3xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <div className="p-3.5 bg-white border border-emerald-100 text-emerald-600 rounded-2xl shadow-xs">
+      <motion.div
+        variants={riseItem}
+        className="nf-premium nf-aurora-border rounded-3xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden"
+      >
+        <div className="absolute -top-12 -right-10 w-48 h-48 bg-emerald-400/15 rounded-full blur-3xl pointer-events-none nf-orb" />
+        <div className="flex items-center gap-4 relative">
+          <div className="p-3.5 nf-glass text-emerald-600 rounded-2xl">
             <Apple size={26} />
           </div>
           <div>
@@ -101,16 +153,20 @@ export default function NutritionTab() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 border border-emerald-100 rounded-xl text-sm font-black text-emerald-700 uppercase tracking-wider shadow-xs">
+        <motion.div
+          whileHover={{ scale: 1.03, y: -2 }}
+          transition={springSoft}
+          className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50/80 border border-emerald-100 rounded-xl text-sm font-black text-emerald-700 uppercase tracking-wider"
+        >
           <ShieldCheck size={16} /> {dietPreference}
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* MAIN LAYOUT */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* LEFT: MEAL INPUT */}
+        {/* LEFT: MEAL INPUT + RESULTS + HISTORY */}
         <div className="lg:col-span-7 space-y-6">
-          <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-xl shadow-slate-200/5 space-y-4">
+          <GlassCard className="p-6 space-y-4">
             <div className="flex items-center gap-2.5 text-slate-800 font-black text-lg tracking-tight mb-3">
               <Utensils size={20} className="text-teal-500" />
               <span>Describe Your Meal</span>
@@ -121,14 +177,17 @@ export default function NutritionTab() {
                 value={mealInput}
                 onChange={(e) => setMealInput(e.target.value)}
                 rows={3}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500 text-sm text-slate-800 transition-all resize-none"
+                className="w-full px-4 py-3 bg-slate-50/70 border border-slate-200/70 rounded-xl font-medium outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/40 text-sm text-slate-800 transition-all resize-none"
                 placeholder="I ate 2 scrambled eggs with cheese, 2 slices of whole wheat toast with butter, and a glass of orange juice..."
                 disabled={loading}
               />
-              <button
+              <motion.button
                 type="submit"
                 disabled={loading || !mealInput.trim()}
-                className="w-full bg-linear-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-sm uppercase tracking-wider py-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                whileHover={{ scale: 1.01, y: -1 }}
+                whileTap={{ scale: 0.985 }}
+                transition={springSoft}
+                className="nf-btn-gradient nf-shimmer w-full text-white font-black text-sm uppercase tracking-wider py-4 rounded-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:pointer-events-none"
               >
                 {loading ? (
                   <>
@@ -139,165 +198,320 @@ export default function NutritionTab() {
                     <Sparkles size={16} /> Analyze Meal
                   </>
                 )}
-              </button>
+              </motion.button>
             </form>
 
             {/* Quick prompts */}
             <div className="flex flex-wrap gap-2 mt-3">
               {quickPrompts.map((prompt) => (
-                <button
+                <motion.button
                   key={prompt}
+                  type="button"
                   onClick={() => setMealInput(prompt)}
-                  className="px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-emerald-50 hover:text-emerald-600 text-slate-500 text-xs font-bold transition-all border border-slate-100 hover:border-emerald-100"
+                  whileHover={{ scale: 1.04, y: -2 }}
+                  whileTap={{ scale: 0.96 }}
+                  transition={springSoft}
+                  className="nf-glass-soft px-3 py-1.5 rounded-lg text-slate-600 hover:text-emerald-700 text-xs font-bold transition-colors border border-white/50"
                 >
                   {prompt}
-                </button>
+                </motion.button>
               ))}
             </div>
-          </div>
+          </GlassCard>
 
           {/* Error */}
-          {error && (
-            <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl text-sm font-bold flex items-center gap-2">
-              <AlertCircle size={16} /> {error}
-            </div>
-          )}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="p-4 bg-rose-50/80 backdrop-blur-md border border-rose-200 text-rose-700 rounded-2xl text-sm font-bold flex items-center gap-2"
+              >
+                <AlertCircle size={16} /> {error}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          {/* Analysis Results */}
-          {analysis && (
-            <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-xl shadow-slate-200/5 space-y-5">
-              <div className="flex items-center justify-between">
-                <h4 className="text-lg font-black text-slate-900 tracking-tight">
-                  Analysis Results
-                </h4>
-                <button
-                  onClick={() => void saveToLog()}
-                  disabled={saved}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
-                    saved
-                      ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
-                      : "bg-linear-to-r from-emerald-500 to-teal-500 text-white shadow-md hover:opacity-95"
-                  }`}
+          {/* Empty state */}
+          <AnimatePresence mode="wait">
+            {!analysis && !loading && (
+              <motion.div
+                key="empty"
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.97 }}
+                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                className="nf-premium rounded-3xl p-10 relative overflow-hidden flex flex-col items-center justify-center text-center min-h-[260px]"
+              >
+                <div className="nf-orb w-40 h-40 bg-emerald-400/20 -top-6 -left-6 animate-pulse" />
+                <div className="nf-orb w-32 h-32 bg-teal-400/20 -bottom-6 -right-6" />
+                <motion.div
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  className="p-4 nf-glass rounded-2xl text-emerald-500 mb-4 relative"
                 >
-                  <CheckCircle size={14} />
-                  {saved ? "Saved!" : "Save to Daily Log"}
-                </button>
-              </div>
+                  <Utensils size={28} />
+                </motion.div>
+                <h4 className="text-lg font-black text-slate-900 tracking-tight relative">
+                  Describe a meal to begin
+                </h4>
+                <p className="text-sm text-slate-400 font-semibold mt-1.5 max-w-xs relative">
+                  Natural-language macro breakdowns powered by the AI engine.
+                  Try a quick prompt above.
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {[
-                  {
-                    label: "Calories",
-                    value: analysis.calories,
-                    unit: "kcal",
-                    target: targetCalories,
-                    pct: Math.round((analysis.calories / targetCalories) * 100),
-                  },
-                  {
-                    label: "Protein",
-                    value: analysis.protein,
-                    unit: "g",
-                    target: macros.protein,
-                    pct: Math.round((analysis.protein / macros.protein) * 100),
-                  },
-                  {
-                    label: "Carbs",
-                    value: analysis.carbs,
-                    unit: "g",
-                    target: macros.carbs,
-                    pct: Math.round((analysis.carbs / macros.carbs) * 100),
-                  },
-                  {
-                    label: "Fat",
-                    value: analysis.fat,
-                    unit: "g",
-                    target: macros.fat,
-                    pct: Math.round((analysis.fat / macros.fat) * 100),
-                  },
-                ].map((macro) => (
-                  <div
-                    key={macro.label}
-                    className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center space-y-2"
+          {/* Analysis Results — spring scale-in */}
+          <AnimatePresence mode="wait">
+            {analysis && (
+              <motion.div
+                key="results"
+                variants={scaleIn}
+                initial="hidden"
+                animate="show"
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ type: "spring", stiffness: 260, damping: 24 }}
+                className="nf-premium rounded-3xl p-6 space-y-5"
+              >
+                <div className="flex items-center justify-between">
+                  <h4 className="text-lg font-black text-slate-900 tracking-tight">
+                    Analysis Results
+                  </h4>
+                  <motion.button
+                    onClick={() => void saveToLog()}
+                    disabled={saved}
+                    whileHover={{ scale: saved ? 1 : 1.04, y: saved ? 0 : -1 }}
+                    whileTap={{ scale: saved ? 1 : 0.96 }}
+                    transition={springSoft}
+                    className={`nf-shimmer flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-colors ${
+                      saved
+                        ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
+                        : "nf-btn-gradient text-white"
+                    }`}
                   >
-                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                      {macro.label}
-                    </span>
-                    <span className="text-xl font-mono font-black text-slate-900 block">
-                      {macro.value}
-                    </span>
-                    <span className="text-[10px] text-slate-400">
-                      {macro.unit}
-                    </span>
-                    <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden mt-1">
-                      <div
-                        className="h-full bg-linear-to-r from-emerald-500 to-teal-500 rounded-full"
-                        style={{ width: `${Math.min(macro.pct, 100)}%` }}
-                      />
-                    </div>
-                    <span className="text-[9px] text-slate-400">
-                      {macro.pct}% of target
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {analysis.items && analysis.items.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {analysis.items.map((it, i) => (
-                    <span
-                      key={i}
-                      className="px-2.5 py-1 bg-slate-50 border border-slate-100 rounded-md text-[11px] font-bold text-slate-500"
-                    >
-                      {it}
-                    </span>
-                  ))}
+                    <CheckCircle size={14} />
+                    {saved ? "Saved!" : "Save to Daily Log"}
+                  </motion.button>
                 </div>
-              )}
 
-              {analysis.tip && (
-                <div className="bg-emerald-50/50 border border-emerald-100/50 rounded-2xl p-4 flex items-start gap-3">
-                  <Sparkles
-                    size={18}
-                    className="text-emerald-500 shrink-0 mt-0.5"
-                  />
-                  <p className="text-sm text-emerald-800 font-semibold leading-relaxed">
-                    {analysis.tip}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
+                <motion.div
+                  variants={staggerContainer}
+                  initial="hidden"
+                  animate="show"
+                  className="grid grid-cols-2 sm:grid-cols-4 gap-4"
+                >
+                  {[
+                    {
+                      label: "Calories",
+                      value: analysis.calories,
+                      unit: "kcal",
+                      target: targetCalories,
+                      pct: Math.round(
+                        (analysis.calories / targetCalories) * 100,
+                      ),
+                    },
+                    {
+                      label: "Protein",
+                      value: analysis.protein,
+                      unit: "g",
+                      target: macros.protein,
+                      pct: Math.round(
+                        (analysis.protein / macros.protein) * 100,
+                      ),
+                    },
+                    {
+                      label: "Carbs",
+                      value: analysis.carbs,
+                      unit: "g",
+                      target: macros.carbs,
+                      pct: Math.round((analysis.carbs / macros.carbs) * 100),
+                    },
+                    {
+                      label: "Fat",
+                      value: analysis.fat,
+                      unit: "g",
+                      target: macros.fat,
+                      pct: Math.round((analysis.fat / macros.fat) * 100),
+                    },
+                  ].map((macro) => {
+                    const s = macroStyles[macro.label];
+                    const safePct = Math.min(macro.pct, 100);
+                    return (
+                      <motion.div
+                        key={macro.label}
+                        variants={riseItem}
+                        whileHover={{ y: -4 }}
+                        transition={springSoft}
+                        className={`group nf-premium rounded-2xl p-4 text-center space-y-2 relative overflow-hidden`}
+                      >
+                        <div
+                          className={`absolute -top-8 left-1/2 -translate-x-1/2 w-24 h-16 ${s.halo} opacity-10 blur-2xl pointer-events-none`}
+                        />
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider relative">
+                          {macro.label}
+                        </span>
+                        <span
+                          className={`nf-stat text-2xl font-black block ${s.text} relative`}
+                        >
+                          <AnimatedNumber
+                            value={macro.value}
+                            duration={900}
+                            delay={120}
+                          />
+                        </span>
+                        <span className="text-[10px] text-slate-400 relative">
+                          {macro.unit}
+                        </span>
+                        {/* Circular progress ring */}
+                        <div className="relative w-14 h-14 mx-auto my-1">
+                          <svg
+                            className="absolute inset-0 -rotate-90"
+                            viewBox="0 0 56 56"
+                          >
+                            <circle
+                              cx="28"
+                              cy="28"
+                              r="24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                              className="text-slate-200/70"
+                            />
+                            <motion.circle
+                              cx="28"
+                              cy="28"
+                              r="24"
+                              fill="none"
+                              strokeWidth="4"
+                              strokeLinecap="round"
+                              stroke={`url(#grad-${macro.label})`}
+                              initial={{ strokeDasharray: "0 999" }}
+                              animate={{
+                                strokeDasharray: `${
+                                  (safePct / 100) * (2 * Math.PI * 24)
+                                } 999`,
+                              }}
+                              transition={{
+                                duration: 1.1,
+                                ease: [0.16, 1, 0.3, 1],
+                                delay: 0.2,
+                              }}
+                            />
+                            <defs>
+                              <linearGradient
+                                id={`grad-${macro.label}`}
+                                x1="0"
+                                y1="0"
+                                x2="1"
+                                y2="1"
+                              >
+                                <stop offset="0%" stopColor={s.from} />
+                                <stop offset="100%" stopColor={s.to} />
+                              </linearGradient>
+                            </defs>
+                          </svg>
+                          <span
+                            className={`absolute inset-0 flex items-center justify-center text-[10px] font-black ${s.text}`}
+                          >
+                            {macro.pct}%
+                          </span>
+                        </div>
+                        <span className="text-[9px] text-slate-400 relative">
+                          of daily target
+                        </span>
+                      </motion.div>
+                    );
+                  })}
+                </motion.div>
+
+                {analysis.items && analysis.items.length > 0 && (
+                  <motion.div
+                    variants={riseItem}
+                    className="flex flex-wrap gap-2"
+                  >
+                    {analysis.items.map((it, i) => (
+                      <motion.span
+                        key={i}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.4 + i * 0.04 }}
+                        className="px-2.5 py-1 nf-glass-soft border border-white/50 rounded-md text-[11px] font-bold text-slate-600"
+                      >
+                        {it}
+                      </motion.span>
+                    ))}
+                  </motion.div>
+                )}
+
+                {analysis.tip && (
+                  <motion.div
+                    variants={riseItem}
+                    className="bg-linear-to-r from-emerald-50/70 to-teal-50/40 border border-emerald-100/60 rounded-2xl p-4 flex items-start gap-3"
+                  >
+                    <Sparkles
+                      size={18}
+                      className="text-emerald-500 shrink-0 mt-0.5"
+                    />
+                    <p className="text-sm text-emerald-800 font-semibold leading-relaxed">
+                      {analysis.tip}
+                    </p>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* History */}
-          {historyItems.length > 0 && (
-            <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-xl shadow-slate-200/5 space-y-4">
-              <h4 className="text-base font-black text-slate-800 tracking-tight">
-                Recent Analyses
-              </h4>
-              <div className="space-y-3">
-                {historyItems.map((item, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded-xl"
-                  >
-                    <p className="text-sm text-slate-700 font-bold truncate max-w-[200px]">
-                      {item.input}
-                    </p>
-                    <div className="flex gap-3 text-xs text-slate-500 font-semibold">
-                      <span>{item.calories} kcal</span>
-                      <span>P: {item.protein}g</span>
-                      <span>C: {item.carbs}g</span>
-                      <span>F: {item.fat}g</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <AnimatePresence>
+            {historyItems.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="nf-premium rounded-3xl p-6 space-y-4"
+              >
+                <h4 className="text-base font-black text-slate-800 tracking-tight">
+                  Recent Analyses
+                </h4>
+                <motion.div
+                  variants={staggerContainer}
+                  initial="hidden"
+                  animate="show"
+                  className="space-y-3"
+                >
+                  {historyItems.map((item, i) => (
+                    <motion.div
+                      key={i}
+                      variants={riseItem}
+                      whileHover={{ x: 4, y: -1 }}
+                      transition={springSoft}
+                      className="nf-glass-soft flex items-center justify-between p-3 rounded-xl border border-white/50"
+                    >
+                      <p className="text-sm text-slate-700 font-bold truncate max-w-[200px]">
+                        {item.input}
+                      </p>
+                      <div className="flex gap-3 text-xs text-slate-500 font-semibold">
+                        <span className="nf-stat">{item.calories} kcal</span>
+                        <span className="nf-stat">P: {item.protein}g</span>
+                        <span className="nf-stat">C: {item.carbs}g</span>
+                        <span className="nf-stat">F: {item.fat}g</span>
+                      </div>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* RIGHT: TARGET MACROS */}
-        <div className="lg:col-span-5 bg-white border border-slate-200/60 rounded-3xl p-6 shadow-xl shadow-slate-200/5 space-y-6">
+        <GlassCard className="lg:col-span-5 p-6 space-y-6" hover={false}>
           <div className="flex items-center gap-2.5">
             <HeartPulse size={20} className="text-cyan-500" />
             <h3 className="text-base font-black text-slate-900 uppercase tracking-wider">
@@ -305,53 +519,70 @@ export default function NutritionTab() {
             </h3>
           </div>
 
-          <div className="p-5 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between">
+          <div className="p-5 nf-glass-soft border border-white/50 rounded-2xl flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Flame className="text-orange-500 animate-pulse" size={20} />
               <span className="text-sm font-black text-slate-500 uppercase tracking-wide">
                 Total Budget:
               </span>
             </div>
-            <span className="text-xl font-mono font-black text-slate-900">
+            <span className="nf-stat text-xl font-black text-slate-900">
               {targetCalories} kcal
             </span>
           </div>
 
-          <div className="space-y-3.5 pt-1">
-            <div className="flex justify-between items-center px-4 py-3 bg-emerald-50/40 rounded-xl border border-emerald-100/30">
-              <span className="text-sm font-bold text-slate-600">
-                Protein Target
-              </span>
-              <span className="text-base font-mono font-black text-emerald-700">
-                {macros.protein}g
-              </span>
-            </div>
-            <div className="flex justify-between items-center px-4 py-3 bg-teal-50/40 rounded-xl border border-teal-100/30">
-              <span className="text-sm font-bold text-slate-600">
-                Carbohydrate Target
-              </span>
-              <span className="text-base font-mono font-black text-teal-700">
-                {macros.carbs}g
-              </span>
-            </div>
-            <div className="flex justify-between items-center px-4 py-3 bg-cyan-50/40 rounded-xl border border-cyan-100/30">
-              <span className="text-sm font-bold text-slate-600">
-                Fat Target
-              </span>
-              <span className="text-base font-mono font-black text-cyan-700">
-                {macros.fat}g
-              </span>
-            </div>
-          </div>
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true }}
+            className="space-y-3.5 pt-1"
+          >
+            {[
+              {
+                label: "Protein Target",
+                value: macros.protein,
+                wrap: "bg-rose-50/40 border-rose-100/30",
+                txt: "text-rose-700",
+              },
+              {
+                label: "Carbohydrate Target",
+                value: macros.carbs,
+                wrap: "bg-teal-50/40 border-teal-100/30",
+                txt: "text-teal-700",
+              },
+              {
+                label: "Fat Target",
+                value: macros.fat,
+                wrap: "bg-cyan-50/40 border-cyan-100/30",
+                txt: "text-cyan-700",
+              },
+            ].map((t) => (
+              <motion.div
+                key={t.label}
+                variants={riseItem}
+                whileHover={{ x: 3 }}
+                transition={springSoft}
+                className={`flex justify-between items-center px-4 py-3 rounded-xl border ${t.wrap}`}
+              >
+                <span className="text-sm font-bold text-slate-600">
+                  {t.label}
+                </span>
+                <span className={`nf-stat text-base font-black ${t.txt}`}>
+                  {t.value}g
+                </span>
+              </motion.div>
+            ))}
+          </motion.div>
 
-          <div className="pt-4 border-t border-slate-100 text-center">
+          <div className="pt-4 border-t border-slate-100/60 text-center">
             <p className="text-xs font-semibold text-slate-400 leading-relaxed">
               Use the AI Meal Analyzer to get instant macro breakdowns from
               natural language descriptions.
             </p>
           </div>
-        </div>
+        </GlassCard>
       </div>
-    </div>
+    </motion.div>
   );
 }

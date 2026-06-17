@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { api } from "@/lib/api";
+import { AnimatedNumber } from "./AnimatedNumber";
+import { staggerContainer, riseItem } from "./motion";
 import {
   BarChart3,
   TrendingUp,
-  Loader2,
   Calendar,
   Flame,
   Footprints,
@@ -13,8 +15,8 @@ import {
 import {
   BarChart,
   Bar,
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -79,11 +81,30 @@ export default function AnalyticsTab() {
     void fetchWeeklyAnalytics();
   }, []);
 
+  // Premium shimmer skeleton while data loads
   if (isLoading) {
     return (
-      <div className="h-60 flex flex-col justify-center items-center gap-3 text-slate-400 font-bold text-sm">
-        <Loader2 className="animate-spin text-emerald-600" size={24} /> Loading
-        Analytics Data...
+      <div className="space-y-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="nf-premium rounded-3xl p-5 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 nf-shimmer" />
+                <div className="h-3 w-24 rounded bg-slate-100 nf-shimmer" />
+              </div>
+              <div className="h-8 w-24 rounded-lg bg-slate-100 nf-shimmer" />
+              <div className="h-2.5 w-16 rounded bg-slate-100 nf-shimmer" />
+            </div>
+          ))}
+        </div>
+        <div className="nf-premium rounded-3xl p-6 space-y-6">
+          <div className="h-5 w-40 rounded bg-slate-100 nf-shimmer" />
+          <div className="h-[280px] w-full rounded-2xl bg-slate-100/60 nf-shimmer" />
+        </div>
+        <div className="nf-premium rounded-3xl p-6 space-y-6">
+          <div className="h-5 w-40 rounded bg-slate-100 nf-shimmer" />
+          <div className="h-[280px] w-full rounded-2xl bg-slate-100/60 nf-shimmer" />
+        </div>
       </div>
     );
   }
@@ -95,64 +116,95 @@ export default function AnalyticsTab() {
   const daysLogged = data.filter((d) => d.calories > 0).length;
 
   return (
-    <div className="space-y-8">
+    <motion.div
+      variants={staggerContainer}
+      initial="hidden"
+      animate="show"
+      className="space-y-8"
+    >
       {/* SUMMARY STATS */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <div className="bg-white border border-slate-200/60 rounded-3xl p-5 shadow-xl shadow-slate-200/5">
+      <motion.div
+        variants={staggerContainer}
+        className="grid grid-cols-1 sm:grid-cols-3 gap-6"
+      >
+        <motion.div
+          variants={riseItem}
+          whileHover={{ y: -4 }}
+          className="nf-premium rounded-3xl p-5"
+        >
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600 ring-1 ring-emerald-100">
               <Flame size={18} />
             </div>
-            <span className="text-xs font-black text-slate-400 uppercase tracking-wider">
+            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
               Avg Calories
             </span>
           </div>
-          <p className="text-2xl font-mono font-black text-slate-900">
-            {avgCalories}
+          <AnimatedNumber
+            value={avgCalories}
+            format={(n) => Math.round(n).toLocaleString()}
+            className="nf-stat text-3xl font-black text-slate-900 tracking-tight"
+          />
+          <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">
+            kcal / day
           </p>
-          <p className="text-[10px] text-slate-400 font-bold uppercase">
-            kcal/day
-          </p>
-        </div>
-        <div className="bg-white border border-slate-200/60 rounded-3xl p-5 shadow-xl shadow-slate-200/5">
+        </motion.div>
+
+        <motion.div
+          variants={riseItem}
+          whileHover={{ y: -4 }}
+          className="nf-premium rounded-3xl p-5"
+        >
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-2.5 bg-cyan-50 text-cyan-600 rounded-xl">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-50 to-cyan-100 text-cyan-600 ring-1 ring-cyan-100">
               <Footprints size={18} />
             </div>
-            <span className="text-xs font-black text-slate-400 uppercase tracking-wider">
+            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
               Avg Steps
             </span>
           </div>
-          <p className="text-2xl font-mono font-black text-slate-900">
-            {avgSteps.toLocaleString()}
+          <AnimatedNumber
+            value={avgSteps}
+            format={(n) => Math.round(n).toLocaleString()}
+            className="nf-stat text-3xl font-black text-slate-900 tracking-tight"
+          />
+          <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">
+            steps / day
           </p>
-          <p className="text-[10px] text-slate-400 font-bold uppercase">
-            steps/day
-          </p>
-        </div>
-        <div className="bg-white border border-slate-200/60 rounded-3xl p-5 shadow-xl shadow-slate-200/5">
+        </motion.div>
+
+        <motion.div
+          variants={riseItem}
+          whileHover={{ y: -4 }}
+          className="nf-premium rounded-3xl p-5"
+        >
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-2.5 bg-teal-50 text-teal-600 rounded-xl">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-teal-50 to-teal-100 text-teal-600 ring-1 ring-teal-100">
               <TrendingUp size={18} />
             </div>
-            <span className="text-xs font-black text-slate-400 uppercase tracking-wider">
+            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
               Days Logged
             </span>
           </div>
-          <p className="text-2xl font-mono font-black text-slate-900">
-            {daysLogged}
-          </p>
-          <p className="text-[10px] text-slate-400 font-bold uppercase">
+          <AnimatedNumber
+            value={daysLogged}
+            className="nf-stat text-3xl font-black text-slate-900 tracking-tight"
+          />
+          <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">
             of last 7
           </p>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* RECHARTS: Steps Bar Chart */}
-      <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-xl shadow-slate-200/10 space-y-6">
+      <motion.div
+        variants={riseItem}
+        whileHover={{ y: -4 }}
+        className="nf-premium rounded-3xl p-6 space-y-6"
+      >
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-cyan-50 text-cyan-600 rounded-xl">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-50 to-cyan-100 text-cyan-600 ring-1 ring-cyan-100">
               <BarChart3 size={18} />
             </div>
             <div>
@@ -169,37 +221,52 @@ export default function AnalyticsTab() {
           </span>
         </div>
         <ResponsiveContainer width="100%" height={280}>
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-            <XAxis
-              dataKey="day"
-              tick={{ fill: "#94a3b8", fontSize: 12, fontWeight: 700 }}
-            />
-            <YAxis tick={{ fill: "#94a3b8", fontSize: 12 }} />
-            <Tooltip
-              contentStyle={{
-                borderRadius: "12px",
-                border: "1px solid #e2e8f0",
-                fontSize: "12px",
-                fontWeight: 700,
-              }}
-            />
-            <Bar dataKey="steps" fill="url(#stepsGradient)" radius={[6, 6, 0, 0]} />
+          <BarChart data={data} barCategoryGap="28%">
             <defs>
               <linearGradient id="stepsGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#06b6d4" />
                 <stop offset="100%" stopColor="#14b8a6" />
               </linearGradient>
             </defs>
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="#f1f5f9"
+              vertical={false}
+            />
+            <XAxis
+              dataKey="day"
+              tick={{ fill: "#94a3b8", fontSize: 12, fontWeight: 700 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              tick={{ fill: "#94a3b8", fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <Tooltip
+              cursor={{ fill: "oklch(0.6 0.12 185 / 0.06)" }}
+            />
+            <Bar
+              dataKey="steps"
+              fill="url(#stepsGradient)"
+              radius={[8, 8, 0, 0]}
+              animationDuration={1200}
+              animationBegin={200}
+            />
           </BarChart>
         </ResponsiveContainer>
-      </div>
+      </motion.div>
 
-      {/* RECHARTS: Calorie & Protein Line Chart */}
-      <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-xl shadow-slate-200/10 space-y-6">
+      {/* RECHARTS: Calorie & Protein Area Chart */}
+      <motion.div
+        variants={riseItem}
+        whileHover={{ y: -4 }}
+        className="nf-premium rounded-3xl p-6 space-y-6"
+      >
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600 ring-1 ring-emerald-100">
               <TrendingUp size={18} />
             </div>
             <div>
@@ -213,41 +280,69 @@ export default function AnalyticsTab() {
           </div>
         </div>
         <ResponsiveContainer width="100%" height={280}>
-          <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+          <AreaChart data={data}>
+            <defs>
+              <linearGradient id="calArea" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#10b981" stopOpacity={0.4} />
+                <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="proArea" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#0d9488" stopOpacity={0.3} />
+                <stop offset="100%" stopColor="#0d9488" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="#f1f5f9"
+              vertical={false}
+            />
             <XAxis
               dataKey="day"
               tick={{ fill: "#94a3b8", fontSize: 12, fontWeight: 700 }}
+              axisLine={false}
+              tickLine={false}
             />
-            <YAxis tick={{ fill: "#94a3b8", fontSize: 12 }} />
+            <YAxis
+              tick={{ fill: "#94a3b8", fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+            />
             <Tooltip
-              contentStyle={{
-                borderRadius: "12px",
-                border: "1px solid #e2e8f0",
-                fontSize: "12px",
-                fontWeight: 700,
+              cursor={{
+                stroke: "#cbd5e1",
+                strokeWidth: 1,
+                strokeDasharray: "4 4",
               }}
             />
             <Legend />
-            <Line
+            <Area
               type="monotone"
               dataKey="calories"
               stroke="#10b981"
-              strokeWidth={2.5}
-              dot={{ r: 4, fill: "#10b981" }}
+              strokeWidth={3}
+              fill="url(#calArea)"
+              isAnimationActive
+              animationDuration={1500}
+              activeDot={{ r: 6, strokeWidth: 0, fill: "#10b981" }}
               name="Calories"
+              style={{ filter: "drop-shadow(0 2px 6px oklch(0.6 0.14 160 / 0.4))" }}
             />
-            <Line
+            <Area
               type="monotone"
               dataKey="protein"
               stroke="#0d9488"
-              strokeWidth={2}
-              dot={{ r: 3, fill: "#0d9488" }}
+              strokeWidth={3}
+              fill="url(#proArea)"
+              isAnimationActive
+              animationDuration={1500}
+              animationBegin={300}
+              activeDot={{ r: 6, strokeWidth: 0, fill: "#0d9488" }}
               name="Protein (g)"
+              style={{ filter: "drop-shadow(0 2px 6px oklch(0.5 0.12 175 / 0.35))" }}
             />
-          </LineChart>
+          </AreaChart>
         </ResponsiveContainer>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

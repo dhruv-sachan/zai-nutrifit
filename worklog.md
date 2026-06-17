@@ -290,3 +290,104 @@ Verification (Agent Browser):
 
 Stage Summary:
 - Settings now persists name + biometric edits to the server AND local IndexedDB, with automatic TDEE/macro recompute. InstallPrompt is wired and will surface the native install flow on real HTTPS browsers that meet PWA criteria. Both features are offline-compatible (Settings recompute falls back to client-side math; InstallPrompt is purely client-side). The MongoDB/Gemini .env credentials remain unnecessary for the current working stack.
+
+---
+Task ID: P2
+Agent: premium-ai-tabs
+Task: Redesign Nutrition + Fitness + AICopilot tabs to premium 2026
+
+Work Log:
+- `src/components/dashboard/NutritionTab.tsx` — full premium restyle (logic untouched: `api.analyzeMeal`, `api.saveLog`, history stack, target macros from `user.macros` all preserved):
+  • Imports `motion, AnimatePresence` + `AnimatedNumber` + `GlassCard, staggerContainer, riseItem, scaleIn, springSoft`.
+  • Top banner: `nf-premium nf-aurora-border` glass with floating emerald orb + spring-staggered entrance.
+  • Analyze button: `nf-btn-gradient nf-shimmer` + spring hover/tap.
+  • Quick-prompt chips: `motion.button` with `whileHover={{scale:1.04, y:-2}} whileTap={{scale:0.96}}` + `nf-glass-soft` styling.
+  • Empty state (new): glass card with floating `nf-orb` halos + a gently bobbing `<Utensils>` icon + "Describe a meal to begin" — replaces the previously blank space when no analysis exists.
+  • Results panel: `AnimatePresence mode="wait"` + `scaleIn` spring reveal when `analysis` arrives. 4 macro stat cards stagger inside via nested `staggerContainer`/`riseItem`.
+  • Macro cards: per-macro gradient accent (Calories=orange, Protein=rose, Carbs=amber, Fat=sky), each with an SVG circular progress ring whose `strokeDasharray` animates 0→pct via `motion.circle`, plus `<AnimatedNumber>` count-up for the value, plus `% of target` text. Linear gradient stops use explicit hex colors (avoiding dynamic Tailwind class issue).
+  • "Save to Daily Log" button: `nf-btn-gradient nf-shimmer` + spring tap; flips to green "Saved!" state on success.
+  • Items chips + tip card: `riseItem` stagger with halo + soft emerald gradient backdrop.
+  • Recent analyses: staggered `riseItem` list, each row `nf-glass-soft` with hover lift (`whileHover={{x:4, y:-1}}`); `nf-stat` tabular nums for kcal/P/C/F.
+  • Right "Target Matrix" column: `GlassCard hover={false}`, animated flame pulse, staggered target rows (rose/teal/cyan).
+- `src/components/dashboard/FitnessTab.tsx` — premium restyle, **all localStorage caching preserved verbatim** (`nutrifit_local_routine`, `nutrifit_local_progress`, `nutrifit_local_meta`), offline/online machine, `handleRunAiGeneration`, `toggleExerciseCheck`, `resetWizardDeck`, `triggerBackgroundCloudSync`, telemetry all intact:
+  • Top header: `nf-premium nf-aurora-border` glass with floating teal orb + `nf-text-aurora` gradient title.
+  • All four state banners (offline / syncing / synced / error) wrapped in `AnimatePresence` slide-in/out.
+  • Wizard card: `nf-premium` + `scaleIn` reveal + dual floating orbs. Selection columns refactored into a reusable `<SelectionColumn>` component: glass-pill buttons with `whileHover={{scale:1.02, x:2}} whileTap={{scale:0.98}}`; active state gets `nf-premium` + `nf-ring-glow` + a gradient tinted bg + an animated `<Check>` mark that springs in.
+  • "Generate Customized Plan" button: `nf-glow nf-shimmer nf-btn-gradient` + spring hover/tap. During generation: 3 bouncing gradient dots (staggered `y:[0,-8,0]` + opacity pulse) PLUS a shimmer-skeleton stack of 3 card placeholders — replacing the previous plain "Streaming True AI Plan..." text.
+  • Generated exercise cards: `nf-premium` glass, each `riseItem` staggered; `whileHover={{y:-3}}`. Completion checkbox animates with spring scale + `nf-ring-glow` + gradient fill when checked; the check mark itself springs in/out via `motion.span` `scale`/`opacity`. Chevron rotates via `animate={{rotate: isExpanded?180:0}}`. Expanded detail uses `AnimatePresence` height-auto reveal. Target zone label uses `nf-text-aurora` gradient text.
+  • Telemetry panel: `GlassCard hover={false}`; `% completion` now uses `<AnimatedNumber suffix="%">`; progress bar fill is a `motion.div` animating `width: 0 → ${progressPct}%` with cubic-bezier ease + `nf-shimmer` overlay on top of the fill; step objective uses `nf-stat` tabular nums.
+- `src/components/dashboard/AICopilotTab.tsx` — premium chat restyle, `handleSendMessage` / `api.chat` / `userContext` / error handling / auto-scroll all preserved:
+  • Container: `nf-premium nf-aurora-border` glass, spring entrance.
+  • Header: gradient top hairline, `Bot` avatar in a gradient circle with a live-pulse green dot (ping + solid), `Sparkles` icon pulses on the right.
+  • Message bubbles: each new message springs in (`initial={{opacity:0, y:12, scale:0.96}} animate={{opacity:1, y:0, scale:1}}` spring). AI bubbles = `nf-glass` with subtle gradient + `nf-ring-glow` on avatar; user bubbles = dark slate-900 with `nf-text-aurora` gradient text accent.
+  • Typing indicator: replaced the plain "Syncing response data nodes..." with 3 bouncing gradient dots in a glass bubble (staggered `y:[0,-6,0]` + opacity pulse), avatar in a `nf-ring-glow` glass circle.
+  • Quick-template chips: `nf-glass-soft` pills with `whileHover={{scale:1.04, y:-2}} whileTap={{scale:0.96}}` spring.
+  • Input bar: `nf-premium`-style frosted input (`bg-white/70 backdrop-blur-xl border-white/60`); Send button is `nf-btn-gradient` + spring tap + `nf-glow` glow ring when `input.trim()` is non-empty.
+- Added a small `springSoft` import where used; nothing outside the three files was touched.
+
+Stage Summary:
+- All three AI-interaction tabs now share the "premium SaaS 2026" language: frosted `nf-premium`/`nf-glass` surfaces, `nf-aurora-border` hero cards, `nf-shimmer` sweeps on primary CTAs, `nf-ring-glow` on active selections/avatars, `nf-text-aurora` gradient headlines, `nf-orb` floating halos, `nf-stat` tabular numerals, and framer-motion `staggerContainer`/`riseItem`/`scaleIn`/`springSoft` for every entrance + micro-interaction.
+- Animated reveals: NutritionTab results panel springs in via `scaleIn` with staggered macro cards (count-up numbers + animated SVG progress rings); FitnessTab exercise list staggers in with incremental delays, telemetry bar fills via animated width, % count-ups via `AnimatedNumber`; AICopilotTab each new chat bubble springs in, typing indicator bounces 3 dots, header has a live-pulse ping dot.
+- Logic preservation verified: every `api.*` call, every localStorage key/hydration, the offline/online state machine, completion toggling with cache persistence, error banners, and the chat auto-scroll ref all remain exactly as before — only presentation + motion layers were elevated.
+- Lint: `bun run lint` → 0 errors, 1 pre-existing harmless `no-page-custom-font` warning in `src/app/layout.tsx` (untouched by this task). `tsc --noEmit` shows zero errors in the three redesigned files (only pre-existing errors in unrelated `src/components/nutrifit/*` legacy files).
+
+---
+Task ID: P3
+Agent: premium-shell-tabs
+Task: Redesign Sidebar + Layout + Store + Tracks + Settings to premium 2026
+
+Work Log:
+- `src/components/dashboard/Sidebar.tsx`: rebuilt as `nf-premium` frosted glass with a vertical white→transparent gradient. Brand mark = animated gradient orb (cyan→teal→emerald) holding a Sparkles icon, paired with `nf-text-aurora` "NutriFit." wordmark. Nav items use framer-motion `motion.button` with `whileHover={{x:4}}`, `whileTap={{scale:0.98}}`, staggered entrance (opacity/x slide). The active item renders TWO `layoutId`-linked motion spans — `activeNav` (gradient pill with `nf-ring-glow` + cyan/teal/emerald wash) and `activeNavAccent` (left accent bar) — so the highlight + bar slide between items on a spring (stiffness 380, damping 30). Active label gets gradient `bg-clip-text`. New footer block: "AI Copilot Online" status pill with a pulsing emerald dot (animate-ping), and a "Terminate Session" button whose hover paints a rose glow + slides right. All logic preserved (`useAuthStore.logout`, `setActiveTab`).
+- `src/components/dashboard/DashboardLayout.tsx`: added two fixed ambient `nf-orb` blobs (cyan top-right + emerald bottom-left, low opacity) for depth. Mobile top bar upgraded to `nf-premium` glass with brand orb + aurora wordmark; tab strip horizontally scrollable via `nf-scroll`; active tab uses `layoutId="activeMobileTab"` (gradient cyan→teal→emerald pill with `shadow-md` + teal glow) that slides between tabs. Main content wrapped in `AnimatePresence mode="wait"` keyed on `activeTab` — fades + slides y:12→0 on enter, y:-8 on exit (cubic-bezier 0.16,1,0.3,1). All logic preserved.
+- `src/components/dashboard/WellnessStoreTab.tsx`: top marketing banner = `nf-premium` glass with emerald→teal wash overlay; ShoppingBag icon tile gets gradient shadow + `whileHover` rotate/scale; cart badge uses `AnimatedNumber` + a popping count badge (`motion.span` keyed on cartCount) with `nf-ring-glow`. Category chips are glass pills with `whileHover={{y:-2}}`, active chip uses `layoutId="activeStoreCategory"` gradient pill with glow. Product grid is a `staggerContainer`/`riseItem` stagger; each card is `nf-premium` glass with `whileHover={{y:-6, scale:1.02}}` spring + image zoom (scale-110, 700ms) + gradient veil. "Deploy to Cart" button has hover gradient shift. Lightbox is `AnimatePresence` + backdrop-blur-md with spring scale-in (stiffness 280, damping 26); close button `whileHover={{rotate:90}}`. All state/logic preserved (`activeCategory`, `cartCount`, `selectedProduct`, filteredProducts, setCartCount, stopPropagation on add-to-cart).
+- `src/components/dashboard/TracksTab.tsx`: header banner in `nf-text-aurora`; "Syncing Metrics" pill uses `AnimatePresence` + `springSoft` + `nf-ring-glow`. Track cards = `nf-premium` glass in a `staggerContainer` grid with `whileHover={{y:-6}}` spring; selected card adds `nf-aurora-border` (animated conic). CheckCircle2 selection badge springs in with rotate. Icon tiles get a soft gradient ring backdrop + `whileHover` rotate/scale. NEW: animated macro preview bars per card — "Calorie Load" (calorieMultiplier%) and "Protein Ratio" (proteinRatio%) — both fill via framer-motion `whileInView` width animation, with `AnimatedNumber` for the percent label. All logic preserved (`localTrack`, `isUpdating`, `handleSelectTrack` setTimeout, `activeDietPreference`).
+- `src/components/dashboard/UserSettingsTab.tsx`: outer wrapper is `staggerContainer`; the form card is `nf-premium nf-aurora-border` (animated conic gradient border) with a small cyan ambient orb behind it. Success/error banners use `AnimatePresence mode="wait"` + `scaleIn` variant (spring scale-in, exit scale-out). All inputs share an elevated `inputBase` class — white/60 backdrop-blur + inset shadow + `focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-400/60` + a focus lift (`focus:-translate-y-0.5`) + a teal glow shadow on focus. Leading icons switch to emerald on `group-focus-within`. Biometric Calibration grid rebuilt as 4 glass mini-cards, each with a gradient-bg icon accent chip (cyan/teal/emerald per field) and centered mono numerals. Select dropdown gets the same elevated styling. "SAVE CONFIGURATIONS" button = `nf-btn-gradient` + `nf-shimmer` + `whileTap={{scale:0.98}}` spring + `whileHover={{scale:1.01}}`. All logic preserved (`handleUpdateProfile`, `updateProfile`, all useState fields, status/errorMsg lifecycle, 4s success auto-dismiss).
+- Verified: `bun run lint` → 0 errors (only the pre-existing font-link warning in src/app/layout.tsx, which is not in scope). `tsc --noEmit` → no errors in any of the 5 edited files.
+
+Stage Summary:
+- The dashboard shell + three remaining tabs now share a unified "SaaS 2026" premium system: frosted `nf-premium` glass surfaces everywhere, animated gradient text (`nf-text-aurora`) on every section title, spring-based micro-interactions (`springSoft`, layoutId sliding indicators, `whileHover`/`whileTap` everywhere), staggered entrance animations on every grid, and depth via ambient `nf-orb` blobs + layered soft shadows + inner highlights.
+- Signature motion: the Sidebar's `layoutId="activeNav"` + `layoutId="activeNavAccent"` pair makes the active pill AND the left accent bar slide together between nav items with a spring — the Linear/Vercel feel. Mirrored on the mobile top bar (`layoutId="activeMobileTab"`) and the Wellness Store category chips (`layoutId="activeStoreCategory"`).
+- Tab switches now fade/slide via `AnimatePresence` keyed on `activeTab` (DashboardLayout), so the whole content area animates between views.
+- Lightbox (Store), success/error banners (Settings), and selection badge (Tracks) all use spring scale-ins with `AnimatePresence`.
+- All existing logic (auth/logout, tab switching, cart state, profile save + TDEE recompute, track selection) is untouched — only presentation + motion was elevated. No new API calls, no state-shape changes, no removed features.
+
+---
+Task ID: P1
+Agent: premium-overview-analytics
+Task: Redesign Overview + Analytics tabs to premium 2026
+
+Work Log:
+- src/components/dashboard/OverviewTab.tsx — full visual+motion elevation (logic preserved: api.saveLog, loggedData/logForm state, handleSaveLog, calorie-ring math, MacroBar helper).
+  - Imports added: `motion` (framer-motion), `AnimatedNumber`, `staggerContainer`/`riseItem` from `./motion`.
+  - Wrapped entire return in `motion.div variants={staggerContainer} initial="hidden" animate="show"`; each grid row is a `motion.div variants={staggerContainer}` and every card is `motion.div variants={riseItem} whileHover={{y:-4}}` → cascading staggered entrance (opacity+y rise, ease [0.16,1,0.3,1]).
+  - Hero card (dark slate-900): added `.nf-grain` (noise texture) + `.nf-aurora-border` (animated conic gradient ring). Two `.nf-orb` floating accents (cyan top-right, emerald bottom-left) inside a clipping `overflow-hidden rounded-3xl` inner container so they don't conflict with the aurora border. Orbs float via framer-motion x/y loops (12s/14s). Health-score badge now animates `boxShadow` glow pulse (2.6s loop) and the "87" count-ups via `AnimatedNumber`.
+  - Calorie ring: replaced static `<circle>` offset with `motion.circle` animating `strokeDashoffset` from full circumference → target offset (1.4s easeOut), re-animates when loggedData changes. Added SVG `feGaussianBlur` glow filter on the stroke + cyan→emerald linearGradient. Centered the animated calorie count (`AnimatedNumber`) + "kcal" + "% of target" inside the ring. Target line below also count-ups.
+  - MacroBar elevated: `motion.div` fill animates width 0→pct (1s, ease [0.16,1,0.3,1], per-bar delay). Gradient fills: protein=rose, carbs=amber, fat=sky, each with a matching colored `boxShadow` glow. Grams now count-up via `AnimatedNumber` ("158g / 200g"). Percent uses `.nf-stat`.
+  - "Ask AI Copilot" CTA: `nf-btn-gradient` + `nf-shimmer` (continuous sheen sweep) + `whileHover={{scale:1.03}} whileTap={{scale:0.97}}`.
+  - Streak card + logging form card: converted to `nf-premium` frosted glass (kept orange streak chip, kept form layout/inputs/handlers). Submit button: `bg-slate-900` + `nf-shimmer` + framer-motion scale hover/tap.
+  - Goal text uses `.nf-text-gradient`; all labels use `text-xs font-black uppercase tracking-widest text-slate-400`; big numbers `font-black tracking-tight nf-stat`.
+- src/components/dashboard/AnalyticsTab.tsx — full visual+motion elevation (logic preserved: api.weeklyLogs, getLast7Days, merge, avg math, isLoading).
+  - Imports: swapped `LineChart/Line` → `AreaChart/Area` (gradient area fill under each line); added `motion`, `AnimatedNumber`, `staggerContainer`/`riseItem`; removed now-unused `Loader2`.
+  - Loading state replaced the plain spinner with a premium shimmer skeleton: 3 stat-card skeletons + 2 chart-card skeletons, every placeholder block uses `.nf-shimmer` (continuous sweep on slate-100).
+  - 3 summary stat cards → `nf-premium` glass with gradient icon chips (emerald/cyan/teal ring-1), `AnimatedNumber` count-ups for avgCalories, avgSteps, daysLogged (text-3xl font-black nf-stat, tabular nums).
+  - Bar chart (steps): `animationDuration={1200} animationBegin={200}`, cyan→teal gradient fill, top radius `[8,8,0,0]`, `barCategoryGap="28%"`, grid dashed `#f1f5f9` horizontal-only, axes `axisLine/tickLine={false}`, subtle `cursor` fill highlight on hover, tooltip uses the globally-styled `.recharts-default-tooltip`.
+  - Area chart (calories + protein): two `<Area>` with strokeWidth 3, vertical gradient fills fading to transparent (emerald + teal), `isAnimationActive animationDuration={1500}` (+300ms begin on the second series), `activeDot={{r:6, strokeWidth:0}}` glow dots, soft `drop-shadow` filter glow on each stroke, dashed cursor crosshair.
+  - Staggered entrance: top-level `motion.div variants={staggerContainer} initial="hidden" animate="show"`; stat grid + chart cards all `variants={riseItem} whileHover={{y:-4}}`.
+
+Stage Summary:
+- Both tabs now read as premium "SaaS 2026": frosted-glass cards with hover lift, cascading staggered entrances, animated SVG progress ring with glow, count-up stats everywhere (calories, macros, target/TDEE, health score, streak, avg calories/steps, days logged), gradient+glow macro bars, animated recharts (bars + area lines with glow + soft grid), dark hero with grain/aurora-border/floating orbs, shimmer-sweep CTA + save buttons, and a shimmer skeleton loading state. All API calls, state, handlers, and data-merge logic are untouched. ESLint: 0 errors (only the pre-existing harmless font warning in layout.tsx). No files outside the two targets were modified.
+
+---
+Task ID: P0-P4 (Premium 2026 Redesign)
+Agent: orchestrator (main) + 3 parallel styling agents
+Task: Elevate the dashboard + tabs from "dull" to premium SaaS 2026 — animated charts, fluid motion, glassmorphism depth
+
+Work Log:
+- P0 (orchestrator): Added premium 2026 design tokens to globals.css — .nf-premium (frosted glass + hover lift + layered shadows), .nf-aurora-border (animated conic gradient border via @property), .nf-shimmer (sweep), .nf-ring-glow, .nf-stat (tabular nums), .nf-text-aurora (animated gradient text), .nf-grain (noise overlay), .nf-orb, .nf-stagger (CSS staggered rise-in), recharts tooltip overrides. Created shared components: AnimatedNumber.tsx (count-up with easeOutExpo, reduced-motion aware) + motion.tsx (staggerContainer/riseItem/scaleIn variants, springSoft, GlassCard).
+- P1 (agent): Redesigned OverviewTab + AnalyticsTab — animated calorie ring (motion.circle strokeDashoffset + SVG glow filter), count-up stats everywhere, macro bars with gradient fills + animated width + glow, dark hero with .nf-grain + .nf-aurora-border + floating orbs, recharts upgraded: bars with gradient + animation, lines→areas with gradient fills + glowing activeDots + drop-shadow, shimmer skeleton loading state.
+- P2 (agent): Redesigned NutritionTab + FitnessTab + AICopilotTab — meal result spring scale-in + AnimatedNumber macros + circular progress rings, exercise cards stagger entrance + completion checkbox spring+glow, telemetry bar animated fill, chat bubbles spring entrance + 3 bouncing gradient dots typing indicator + glass avatars with ring-glow.
+- P3 (agent): Redesigned Sidebar + DashboardLayout + WellnessStoreTab + TracksTab + UserSettingsTab — Sidebar active nav uses layoutId sliding pill + accent bar (Linear/Vercel feel), mobile top bar with layoutId sliding tab pill, AnimatePresence tab transitions, product cards hover-lift + image zoom, settings form with aurora-border + elevated inputs, all flat cards→nf-premium glass.
+- P4 (orchestrator verification): All 8 tabs render without crashes (6-18 animated elements each). Analytics VLM-rated 8/10 premium (gradient area charts, icon-chip stat cards, clean modern layout). Copilot chat returns real AI replies. Mobile: no horizontal overflow, sidebar collapses to top bar. ESLint: 0 errors.
+
+Stage Summary:
+- The entire dashboard is now premium SaaS 2026: every card is frosted glass with hover lift, every stat counts up, charts animate with gradient fills + glow, the sidebar active indicator slides with a spring (layoutId), tab transitions use AnimatePresence, the calorie ring draws with SVG stroke animation, macro bars animate fill + glow, chat bubbles spring in, typing indicator uses bouncing gradient dots, loading states use shimmer skeletons. All logic/API calls/localStorage caching preserved. Lint clean, no crashes, mobile responsive.

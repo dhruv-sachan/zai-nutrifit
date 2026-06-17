@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/useAuthStore";
+import { AnimatedNumber } from "./AnimatedNumber";
+import { staggerContainer, riseItem } from "./motion";
 import {
   Flame,
   Sparkles,
@@ -13,34 +16,51 @@ import {
   ShieldAlert,
 } from "lucide-react";
 
-// Helper Component for the visual Macro Bars
+// Elevated Macro Bar — animated fill width, gradient + glow, count-up grams
 function MacroBar({
   label,
   current,
   target,
-  colorClass,
+  gradient,
+  glow,
+  delay = 0,
 }: {
   label: string;
   current: number;
   target: number;
-  colorClass: string;
+  gradient: string;
+  glow: string;
+  delay?: number;
 }) {
   const percent = Math.min(Math.round((current / target) * 100) || 0, 100);
   return (
     <div className="space-y-1.5">
       <div className="flex justify-between items-center text-sm">
-        <span className="font-black text-slate-700">{label}</span>
-        <span className="font-bold text-slate-400">{percent}%</span>
+        <span className="font-black text-slate-700 tracking-tight">{label}</span>
+        <span className="font-bold text-slate-400 nf-stat">{percent}%</span>
       </div>
-      <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all duration-1000 ease-out ${colorClass}`}
-          style={{ width: `${percent}%` }}
+      <div className="w-full h-2.5 bg-slate-100/80 rounded-full overflow-hidden">
+        <motion.div
+          className={`h-full rounded-full ${gradient}`}
+          style={{ boxShadow: glow }}
+          initial={{ width: 0 }}
+          animate={{ width: `${percent}%` }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay }}
         />
       </div>
-      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">
-        {current}g / {target}g
-      </p>
+      <div className="flex justify-between items-center">
+        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+          {label}
+        </span>
+        <span className="text-[11px] font-bold text-slate-500 nf-stat">
+          <AnimatedNumber
+            value={current}
+            format={(n) => Math.round(n).toString()}
+            suffix="g"
+          />{" "}
+          / {target}g
+        </span>
+      </div>
     </div>
   );
 }
@@ -79,6 +99,9 @@ export default function OverviewTab() {
     ringCircumference -
     (Math.min(loggedData.calories, targetCalories) / targetCalories) *
       ringCircumference;
+  const ringPercent = Math.round(
+    (Math.min(loggedData.calories, targetCalories) / targetCalories) * 100,
+  );
 
   const handleSaveLog = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,12 +143,54 @@ export default function OverviewTab() {
   };
 
   return (
-    <div className="space-y-8 animate-fadeIn pb-12">
+    <motion.div
+      variants={staggerContainer}
+      initial="hidden"
+      animate="show"
+      className="space-y-8 pb-12"
+    >
       {/* ROW 1: Hero Intelligence & User Streak */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* The Hero Card */}
-        <div className="lg:col-span-2 bg-slate-900 rounded-3xl p-8 text-white shadow-xl shadow-slate-900/10 relative overflow-hidden flex flex-col justify-between">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+      <motion.div
+        variants={staggerContainer}
+        className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+      >
+        {/* The Hero Card — dark, grain, aurora border, floating orbs */}
+        <motion.div
+          variants={riseItem}
+          whileHover={{ y: -4 }}
+          className="lg:col-span-2 bg-slate-900 rounded-3xl p-8 text-white relative flex flex-col justify-between nf-grain nf-aurora-border"
+        >
+          {/* Floating orbs (clipped to card) */}
+          <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
+            <motion.div
+              className="nf-orb"
+              style={{
+                width: 240,
+                height: 240,
+                top: "-70px",
+                right: "-50px",
+                opacity: 0.7,
+                background:
+                  "radial-gradient(circle at 30% 30%, oklch(0.7 0.16 200), transparent 70%)",
+              }}
+              animate={{ x: [0, 18, 0], y: [0, 14, 0] }}
+              transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.div
+              className="nf-orb"
+              style={{
+                width: 200,
+                height: 200,
+                bottom: "-60px",
+                left: "18%",
+                opacity: 0.6,
+                background:
+                  "radial-gradient(circle at 50% 50%, oklch(0.78 0.16 150), transparent 70%)",
+              }}
+              animate={{ x: [0, -16, 0], y: [0, -12, 0] }}
+              transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+            />
+          </div>
 
           <div className="relative z-10">
             <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-2">
@@ -133,105 +198,120 @@ export default function OverviewTab() {
               {user?.name ? user.name.split(" ")[0] : "Operator"}{" "}
               <span className="text-2xl">👋</span>
             </h2>
-            <div className="flex items-center gap-3 mt-4 text-sm font-bold">
-              <span className="text-slate-400 uppercase tracking-widest">
-                Health Score:
+            <div className="flex items-center gap-3 mt-4">
+              <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                Health Score
               </span>
-              <span className="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-lg">
-                87 Optimal
-              </span>
+              <motion.span
+                className="bg-emerald-500/20 text-emerald-300 px-3 py-1.5 rounded-xl flex items-center gap-1.5 ring-1 ring-emerald-400/30"
+                animate={{
+                  boxShadow: [
+                    "0 0 0 0 oklch(0.78 0.16 150 / 0)",
+                    "0 0 22px 2px oklch(0.78 0.16 150 / 0.5)",
+                    "0 0 0 0 oklch(0.78 0.16 150 / 0)",
+                  ],
+                }}
+                transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <AnimatedNumber value={87} className="nf-stat font-black text-sm" />
+                <span className="text-emerald-400/80 text-xs font-bold">Optimal</span>
+              </motion.span>
             </div>
           </div>
 
           <div className="relative z-10 mt-8 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
             <div className="space-y-1">
-              <p className="text-emerald-400 font-bold flex items-center gap-2">
+              <p className="text-emerald-400 font-bold flex items-center gap-2 text-sm">
                 <CheckCircle2 size={16} /> Protein Goal: On Track
               </p>
-              <p className="text-amber-400 font-bold flex items-center gap-2">
+              <p className="text-amber-400 font-bold flex items-center gap-2 text-sm">
                 <ShieldAlert size={16} /> Hydration: Slightly Low
               </p>
             </div>
 
-            <button className="bg-white text-slate-900 hover:bg-slate-100 px-6 py-3 rounded-xl font-black text-sm uppercase tracking-wider flex items-center gap-2 transition-transform active:scale-95">
-              <Sparkles size={16} className="text-cyan-600" /> Ask AI Copilot
-            </button>
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              className="nf-btn-gradient nf-shimmer relative overflow-hidden px-6 py-3 rounded-xl font-black text-sm uppercase tracking-wider flex items-center gap-2"
+            >
+              <Sparkles size={16} /> Ask AI Copilot
+            </motion.button>
           </div>
-        </div>
+        </motion.div>
 
         {/* User / Streak Card */}
-        <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
+        <motion.div
+          variants={riseItem}
+          whileHover={{ y: -4 }}
+          className="nf-premium rounded-3xl p-6 flex flex-col justify-between"
+        >
           <div>
-            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
+            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
               {user?.name || "Daniel Reeve"}
             </p>
             <p className="text-xl font-black text-slate-800 tracking-tight mt-1">
-              Goal: {user?.goal || "Fat Loss"}
+              Goal: <span className="nf-text-gradient">{user?.goal || "Fat Loss"}</span>
             </p>
             <p className="text-sm font-semibold text-slate-500 mt-1">
               Week 3 Phase
             </p>
           </div>
 
-          <div className="mt-6 bg-orange-50 border border-orange-100/50 rounded-2xl p-4 flex items-center gap-4">
+          <div className="mt-6 bg-orange-50/80 border border-orange-100/60 rounded-2xl p-4 flex items-center gap-4">
             <div className="p-3 bg-orange-100 rounded-xl text-orange-500 shrink-0">
               <Flame size={24} className="fill-orange-500" />
             </div>
             <div>
               <p className="font-black text-orange-700 text-lg leading-none">
-                12 Day Streak
+                <AnimatedNumber value={12} className="nf-stat" /> Day Streak
               </p>
               <p className="text-xs font-bold text-orange-500/80 mt-1">
                 Logged meals for 12 consecutive days.
               </p>
             </div>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* ROW 2: Contextual Metrics (Ring + Macros + Insight) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <motion.div
+        variants={staggerContainer}
+        className="grid grid-cols-1 md:grid-cols-3 gap-6"
+      >
         {/* Contextual Calorie Ring */}
-        <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
-          <p className="text-sm font-black text-slate-400 uppercase tracking-widest">
+        <motion.div
+          variants={riseItem}
+          whileHover={{ y: -4 }}
+          className="nf-premium rounded-3xl p-6 flex flex-col justify-between"
+        >
+          <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
             Today&apos;s Calories
           </p>
 
-          <div className="flex items-center justify-between mt-4">
-            <div>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-4xl font-black text-slate-800 tracking-tighter">
-                  {loggedData.calories}
-                </span>
-                <span className="text-sm font-bold text-slate-400">kcal</span>
-              </div>
-              <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest">
-                Target: {targetCalories} kcal
-              </p>
-            </div>
-
-            {/* SVG Ring */}
-            <div className="relative w-28 h-28 flex items-center justify-center shrink-0">
-              <svg className="w-full h-full transform -rotate-90">
+          <div className="flex items-center justify-center my-4">
+            <div className="relative w-36 h-36 flex items-center justify-center">
+              <svg className="w-full h-full -rotate-90">
                 <circle
                   cx="56"
                   cy="56"
                   r={ringRadius}
-                  stroke="#f1f5f9"
-                  strokeWidth="12"
+                  stroke="#eef2f7"
+                  strokeWidth="10"
                   fill="transparent"
                 />
-                <circle
+                <motion.circle
                   cx="56"
                   cy="56"
                   r={ringRadius}
                   stroke="url(#calorieGradient)"
-                  strokeWidth="12"
+                  strokeWidth="10"
                   fill="transparent"
-                  strokeDasharray={ringCircumference}
-                  strokeDashoffset={ringOffset}
                   strokeLinecap="round"
-                  className="transition-all duration-1000 ease-out"
+                  filter="url(#ringGlow)"
+                  strokeDasharray={ringCircumference}
+                  initial={{ strokeDashoffset: ringCircumference }}
+                  animate={{ strokeDashoffset: ringOffset }}
+                  transition={{ duration: 1.4, ease: "easeOut" }}
                 />
                 <defs>
                   <linearGradient
@@ -244,40 +324,82 @@ export default function OverviewTab() {
                     <stop offset="0%" stopColor="#06b6d4" />
                     <stop offset="100%" stopColor="#10b981" />
                   </linearGradient>
+                  <filter id="ringGlow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="2.5" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
                 </defs>
               </svg>
-              <Flame
-                size={20}
-                className="absolute text-cyan-500 animate-pulse"
-              />
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <AnimatedNumber
+                  value={loggedData.calories}
+                  format={(n) => Math.round(n).toLocaleString()}
+                  className="nf-stat text-3xl font-black text-slate-800"
+                />
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-0.5">
+                  kcal
+                </span>
+                <span className="text-[10px] font-bold text-cyan-600 mt-0.5 nf-stat">
+                  {ringPercent}% of target
+                </span>
+              </div>
             </div>
           </div>
-        </div>
+
+          <div className="flex items-center justify-between text-xs pt-3 border-t border-slate-100/80">
+            <span className="font-black text-slate-400 uppercase tracking-widest">
+              Target
+            </span>
+            <AnimatedNumber
+              value={targetCalories}
+              format={(n) => Math.round(n).toLocaleString()}
+              suffix=" kcal"
+              className="nf-stat font-black text-slate-700"
+            />
+          </div>
+        </motion.div>
 
         {/* Macro Progress Bars */}
-        <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm flex flex-col justify-center space-y-5">
+        <motion.div
+          variants={riseItem}
+          whileHover={{ y: -4 }}
+          className="nf-premium rounded-3xl p-6 flex flex-col justify-center space-y-5"
+        >
           <MacroBar
             label="Protein"
             current={loggedData.protein}
             target={macros.protein}
-            colorClass="bg-cyan-500"
+            gradient="bg-gradient-to-r from-rose-400 to-rose-500"
+            glow="0 0 12px oklch(0.65 0.2 15 / 0.45)"
+            delay={0.1}
           />
           <MacroBar
             label="Carbs"
             current={loggedData.carbs}
             target={macros.carbs}
-            colorClass="bg-emerald-500"
+            gradient="bg-gradient-to-r from-amber-300 to-amber-500"
+            glow="0 0 12px oklch(0.78 0.16 75 / 0.45)"
+            delay={0.2}
           />
           <MacroBar
             label="Fat"
             current={loggedData.fat}
             target={macros.fat}
-            colorClass="bg-amber-400"
+            gradient="bg-gradient-to-r from-sky-400 to-sky-500"
+            glow="0 0 12px oklch(0.65 0.14 230 / 0.45)"
+            delay={0.3}
           />
-        </div>
+        </motion.div>
 
         {/* Visible AI Insight */}
-        <div className="bg-gradient-to-br from-cyan-50 to-teal-50 border border-cyan-100/60 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
+        <motion.div
+          variants={riseItem}
+          whileHover={{ y: -4 }}
+          className="rounded-3xl p-6 flex flex-col justify-between bg-gradient-to-br from-cyan-50 to-teal-50 border border-cyan-100/60 shadow-xl shadow-cyan-200/30 backdrop-blur-xl"
+        >
           <div>
             <div className="flex items-center gap-2 text-cyan-700 font-black mb-3">
               <Sparkles size={18} /> AI Insight
@@ -285,7 +407,12 @@ export default function OverviewTab() {
             <p className="text-base font-semibold text-slate-700 leading-relaxed">
               You are currently{" "}
               <span className="font-black text-cyan-700">
-                {Math.max(macros.protein - loggedData.protein, 0)}g below
+                <AnimatedNumber
+                  value={Math.max(macros.protein - loggedData.protein, 0)}
+                  suffix="g"
+                  className="nf-stat"
+                />{" "}
+                below
               </span>{" "}
               your protein target.
             </p>
@@ -310,11 +437,11 @@ export default function OverviewTab() {
               </li>
             </ul>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* ROW 3: The Demoted Logging Form */}
-      <div className="mt-12 pt-8 border-t border-slate-200/60">
+      <motion.div variants={riseItem} className="pt-8 border-t border-slate-200/60">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2.5 bg-slate-100 text-slate-500 rounded-xl">
             <ClipboardList size={20} />
@@ -329,7 +456,11 @@ export default function OverviewTab() {
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm">
+        <motion.div
+          variants={riseItem}
+          whileHover={{ y: -2 }}
+          className="nf-premium rounded-3xl p-6"
+        >
           {logError && (
             <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold flex items-center gap-2">
               <ShieldAlert size={14} /> {logError}
@@ -352,7 +483,7 @@ export default function OverviewTab() {
               onChange={(e) =>
                 setLogForm({ ...logForm, steps: e.target.value })
               }
-              className="col-span-2 md:col-span-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-cyan-500"
+              className="col-span-2 md:col-span-1 bg-slate-50/80 border border-slate-200/80 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-cyan-500 transition"
             />
             <input
               type="number"
@@ -361,7 +492,7 @@ export default function OverviewTab() {
               onChange={(e) =>
                 setLogForm({ ...logForm, calories: e.target.value })
               }
-              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-cyan-500"
+              className="bg-slate-50/80 border border-slate-200/80 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-cyan-500 transition"
             />
             <input
               type="number"
@@ -370,7 +501,7 @@ export default function OverviewTab() {
               onChange={(e) =>
                 setLogForm({ ...logForm, protein: e.target.value })
               }
-              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-cyan-500"
+              className="bg-slate-50/80 border border-slate-200/80 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-cyan-500 transition"
             />
             <input
               type="number"
@@ -379,20 +510,22 @@ export default function OverviewTab() {
               onChange={(e) =>
                 setLogForm({ ...logForm, carbs: e.target.value })
               }
-              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-cyan-500"
+              className="bg-slate-50/80 border border-slate-200/80 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-cyan-500 transition"
             />
             <input
               type="number"
               placeholder="Fat (g)"
               value={logForm.fat}
               onChange={(e) => setLogForm({ ...logForm, fat: e.target.value })}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-cyan-500"
+              className="bg-slate-50/80 border border-slate-200/80 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-cyan-500 transition"
             />
 
-            <button
+            <motion.button
               type="submit"
               disabled={isLogging}
-              className="col-span-2 md:col-span-1 bg-slate-900 text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors disabled:opacity-70"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              className="col-span-2 md:col-span-1 bg-slate-900 text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors disabled:opacity-70 nf-shimmer"
             >
               {isLogging ? (
                 <>
@@ -403,10 +536,10 @@ export default function OverviewTab() {
                   <PlusCircle size={16} /> Save
                 </>
               )}
-            </button>
+            </motion.button>
           </form>
-        </div>
-      </div>
-    </div>
+        </motion.div>
+      </motion.div>
+    </motion.div>
   );
 }
