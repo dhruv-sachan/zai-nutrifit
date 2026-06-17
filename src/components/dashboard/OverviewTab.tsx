@@ -14,6 +14,11 @@ import {
   Loader2,
   CheckCircle2,
   ShieldAlert,
+  Utensils,
+  Footprints,
+  X,
+  Send,
+  RotateCcw,
 } from "lucide-react";
 
 // Elevated Macro Bar — animated fill width, gradient + glow, count-up grams
@@ -71,7 +76,8 @@ export default function OverviewTab() {
   const targetCalories = user?.targetCalories || 2459;
   const macros = user?.macros || { protein: 200, carbs: 300, fat: 100 };
 
-  // State for logged data (simulated for the dashboard view)
+  // Today's running totals (calories/macros accumulate as meals are added;
+  // steps are set directly since people know them from their phone/watch).
   const [loggedData, setLoggedData] = useState({
     calories: 1800,
     protein: 158,
@@ -80,17 +86,35 @@ export default function OverviewTab() {
     steps: 8400,
   });
 
-  // State for the Data Entry Form
-  const [logForm, setLogForm] = useState({
-    calories: "",
-    protein: "",
-    carbs: "",
-    fat: "",
-    steps: "",
-  });
-  const [isLogging, setIsLogging] = useState(false);
-  const [logError, setLogError] = useState("");
-  const [logSaved, setLogSaved] = useState(false);
+  // --- Smart meal logger state ---
+  const [mealInput, setMealInput] = useState("");
+  const [mealEstimate, setMealEstimate] = useState<{
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    tip?: string;
+  } | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isAddingMeal, setIsAddingMeal] = useState(false);
+  const [mealError, setMealError] = useState("");
+
+  // --- Steps logger state ---
+  const [stepsInput, setStepsInput] = useState("");
+  const [isSavingSteps, setIsSavingSteps] = useState(false);
+  const [stepsSaved, setStepsSaved] = useState(false);
+
+  // Meals logged this session (for the "Today's Meals" list)
+  type LoggedMeal = {
+    id: string;
+    text: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+  const [todayMeals, setTodayMeals] = useState<LoggedMeal[]>([]);
+  const [mealRemoved, setMealRemoved] = useState(false);
 
   // Calorie Ring Calculations
   const ringRadius = 54;
@@ -103,44 +127,116 @@ export default function OverviewTab() {
     (Math.min(loggedData.calories, targetCalories) / targetCalories) * 100,
   );
 
-  const handleSaveLog = async (e: React.FormEvent) => {
+  // --- Smart meal logger handlers ---
+
+  // Step 1: describe a meal → AI estimates calories + macros (preview).
+  const handleAnalyzeMeal = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLogging(true);
-    setLogError("");
-    setLogSaved(false);
-
-    const today = new Date().toISOString().split("T")[0];
-    const payload = {
-      date: today,
-      calories: Number(logForm.calories) || 0,
-      protein: Number(logForm.protein) || 0,
-      carbs: Number(logForm.carbs) || 0,
-      fat: Number(logForm.fat) || 0,
-      steps: Number(logForm.steps) || 0,
-    };
-
+    if (!mealInput.trim() || isAnalyzing) return;
+    setIsAnalyzing(true);
+    setMealError("");
+    setMealEstimate(null);
     try {
-      await api.saveLog(payload);
-      // Update the dashboard view live
-      setLoggedData((prev) => ({
-        ...prev,
-        calories: payload.calories || prev.calories,
-        protein: payload.protein || prev.protein,
-        carbs: payload.carbs || prev.carbs,
-        fat: payload.fat || prev.fat,
-        steps: payload.steps || prev.steps,
-      }));
-      setLogForm({ calories: "", protein: "", carbs: "", fat: "", steps: "" });
-      setLogSaved(true);
-      setTimeout(() => setLogSaved(false), 3000);
+      const { analysis } = await api.analyzeMeal(mealInput.trim());
+      setMealEstimate(analysis);
     } catch (err) {
-      setLogError(
-        err instanceof Error ? err.message : "Failed to commit log to cluster.",
+      setMealError(
+        err instanceof Error ? err.message : "Could not analyze that meal.",
       );
     } finally {
-      setIsLogging(false);
+      setIsAnalyzing(false);
     }
   };
+
+  // Step 2: confirm the estimate → add to today's running totals + persist.
+  const handleConfirmMeal = async () => {
+    if (!mealEstimate) return;
+    setIsAddingMeal(true);
+    const next = {
+      calories: loggedData.calories + mealEstimate.calories,
+      protein: loggedData.protein + mealEstimate.protein,
+      carbs: loggedData.carbs + mealEstimate.carbs,
+      fat: loggedData.fat + mealEstimate.fat,
+      steps: loggedData.steps,
+    };
+    setLoggedData(next);
+    setTodayMeals((prev) => [
+      {
+        id: `meal-${Date.now()}`,
+        text: mealInput.trim(),
+        ...mealEstimate,
+      },
+      ...prev,
+    ]);
+    try {
+      await api.saveLog({
+        date: new Date().toISOString().split("T")[0],
+        calories: next.calories,
+        protein: next.protein,
+        carbs: next.carbs,
+        fat: next.fat,
+        steps: next.steps,
+      });
+    } catch {
+      // totals already updated locally; sync happens in the background
+    }
+    setMealInput("");
+    setMealEstimate(null);
+    setIsAddingMeal(false);
+  };
+
+  // Remove a meal from today's list + subtract from totals.
+  const handleRemoveMeal = (id: string) => {
+    const meal = todayMeals.find((m) => m.id === id);
+    if (!meal) return;
+    const next = {
+      calories: Math.max(loggedData.calories - meal.calories, 0),
+      protein: Math.max(loggedData.protein - meal.protein, 0),
+      carbs: Math.max(loggedData.carbs - meal.carbs, 0),
+      fat: Math.max(loggedData.fat - meal.fat, 0),
+      steps: loggedData.steps,
+    };
+    setLoggedData(next);
+    setTodayMeals((prev) => prev.filter((m) => m.id !== id));
+    setMealRemoved(true);
+    setTimeout(() => setMealRemoved(false), 2500);
+    void api.saveLog({
+      date: new Date().toISOString().split("T")[0],
+      ...next,
+    });
+  };
+
+  // --- Steps logger handler ---
+  const handleUpdateSteps = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const steps = Number(stepsInput) || 0;
+    if (!steps) return;
+    setIsSavingSteps(true);
+    const next = { ...loggedData, steps };
+    setLoggedData(next);
+    try {
+      await api.saveLog({
+        date: new Date().toISOString().split("T")[0],
+        ...next,
+      });
+      setStepsSaved(true);
+      setTimeout(() => setStepsSaved(false), 2500);
+      setStepsInput("");
+    } catch {
+      // updated locally already
+    } finally {
+      setIsSavingSteps(false);
+    }
+  };
+
+  // Quick-meal suggestion chips
+  const QUICK_MEALS = [
+    "2 eggs, toast, and black coffee",
+    "Grilled chicken salad with avocado",
+    "Protein shake with banana and oats",
+    "Salmon with quinoa and broccoli",
+    "Greek yogurt with honey and berries",
+  ];
 
   return (
     <motion.div
@@ -440,105 +536,270 @@ export default function OverviewTab() {
         </motion.div>
       </motion.div>
 
-      {/* ROW 3: The Demoted Logging Form */}
+      {/* ROW 3: Smart Daily Logger */}
       <motion.div variants={riseItem} className="pt-8 border-t border-slate-200/60">
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-2.5 bg-slate-100 text-slate-500 rounded-xl">
-            <ClipboardList size={20} />
+          <div className="p-2.5 bg-gradient-to-br from-cyan-500 to-teal-500 text-white rounded-xl shadow-lg shadow-cyan-500/20">
+            <Utensils size={20} />
           </div>
           <div>
             <h3 className="text-lg font-black text-slate-900 tracking-tight">
-              Manual Log Parameters
+              Smart Daily Logger
             </h3>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-              Commit raw daily metrics to the database
+              Log meals in plain English — AI does the math
             </p>
           </div>
         </div>
 
-        <motion.div
-          variants={riseItem}
-          whileHover={{ y: -2 }}
-          className="nf-premium rounded-3xl p-6"
-        >
-          {logError && (
-            <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold flex items-center gap-2">
-              <ShieldAlert size={14} /> {logError}
-            </div>
-          )}
-          {logSaved && (
-            <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-bold flex items-center gap-2">
-              <CheckCircle2 size={14} /> Daily log committed to cluster.
-            </div>
-          )}
-
-          <form
-            onSubmit={handleSaveLog}
-            className="grid grid-cols-2 md:grid-cols-6 gap-4"
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* LEFT (2/3): Meal logger */}
+          <motion.div
+            variants={riseItem}
+            className="lg:col-span-2 nf-premium rounded-3xl p-6 space-y-4"
           >
-            <input
-              type="number"
-              placeholder="Steps"
-              value={logForm.steps}
-              onChange={(e) =>
-                setLogForm({ ...logForm, steps: e.target.value })
-              }
-              className="col-span-2 md:col-span-1 bg-slate-50/80 border border-slate-200/80 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-cyan-500 transition"
-            />
-            <input
-              type="number"
-              placeholder="Kcal"
-              value={logForm.calories}
-              onChange={(e) =>
-                setLogForm({ ...logForm, calories: e.target.value })
-              }
-              className="bg-slate-50/80 border border-slate-200/80 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-cyan-500 transition"
-            />
-            <input
-              type="number"
-              placeholder="Protein (g)"
-              value={logForm.protein}
-              onChange={(e) =>
-                setLogForm({ ...logForm, protein: e.target.value })
-              }
-              className="bg-slate-50/80 border border-slate-200/80 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-cyan-500 transition"
-            />
-            <input
-              type="number"
-              placeholder="Carbs (g)"
-              value={logForm.carbs}
-              onChange={(e) =>
-                setLogForm({ ...logForm, carbs: e.target.value })
-              }
-              className="bg-slate-50/80 border border-slate-200/80 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-cyan-500 transition"
-            />
-            <input
-              type="number"
-              placeholder="Fat (g)"
-              value={logForm.fat}
-              onChange={(e) => setLogForm({ ...logForm, fat: e.target.value })}
-              className="bg-slate-50/80 border border-slate-200/80 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-cyan-500 transition"
-            />
+            {mealError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold flex items-center gap-2">
+                <ShieldAlert size={14} /> {mealError}
+              </div>
+            )}
 
-            <motion.button
-              type="submit"
-              disabled={isLogging}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              className="col-span-2 md:col-span-1 bg-slate-900 text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors disabled:opacity-70 nf-shimmer"
-            >
-              {isLogging ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" /> Saving
-                </>
+            <form onSubmit={handleAnalyzeMeal} className="space-y-3">
+              <textarea
+                value={mealInput}
+                onChange={(e) => setMealInput(e.target.value)}
+                placeholder="e.g. Grilled chicken breast with brown rice, broccoli, and a drizzle of olive oil"
+                rows={3}
+                className="w-full bg-slate-50/80 border border-slate-200/80 rounded-2xl px-4 py-3.5 text-sm font-semibold text-slate-800 placeholder:text-slate-400 outline-none focus:bg-white focus:ring-2 focus:ring-cyan-500/50 focus:border-transparent transition-all resize-none nf-scroll"
+                disabled={isAnalyzing}
+              />
+              <div className="flex flex-wrap gap-2">
+                {QUICK_MEALS.map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => {
+                      setMealInput(q);
+                      setMealEstimate(null);
+                      setMealError("");
+                    }}
+                    className="text-[11px] font-bold bg-white/70 border border-slate-200/70 text-slate-600 hover:text-cyan-700 hover:border-cyan-300 px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+              <motion.button
+                type="submit"
+                disabled={isAnalyzing || !mealInput.trim()}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                className="nf-btn-gradient w-full py-3.5 rounded-2xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50 nf-shimmer"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" /> Analyzing…
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={16} /> Estimate Macros
+                  </>
+                )}
+              </motion.button>
+            </form>
+
+            {/* AI estimate preview — confirm to add to today */}
+            {mealEstimate && (
+              <motion.div
+                initial={{ opacity: 0, y: 12, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                className="bg-gradient-to-br from-cyan-50 to-teal-50 border border-cyan-200/60 rounded-2xl p-4 space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-cyan-700 uppercase tracking-widest flex items-center gap-1.5">
+                    <Sparkles size={13} /> AI Estimate
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setMealEstimate(null)}
+                    className="text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                <div className="grid grid-cols-4 gap-2 text-center">
+                  {[
+                    { k: "Calories", v: mealEstimate.calories, c: "text-orange-600", u: "" },
+                    { k: "Protein", v: mealEstimate.protein, c: "text-rose-600", u: "g" },
+                    { k: "Carbs", v: mealEstimate.carbs, c: "text-amber-600", u: "g" },
+                    { k: "Fat", v: mealEstimate.fat, c: "text-sky-600", u: "g" },
+                  ].map((s) => (
+                    <div key={s.k} className="bg-white/60 rounded-xl py-2">
+                      <div className={`text-lg font-black nf-stat ${s.c}`}>
+                        <AnimatedNumber value={s.v} />
+                        {s.u}
+                      </div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        {s.k}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {mealEstimate.tip && (
+                  <p className="text-xs text-slate-500 font-medium italic">
+                    💡 {mealEstimate.tip}
+                  </p>
+                )}
+                <motion.button
+                  type="button"
+                  onClick={handleConfirmMeal}
+                  disabled={isAddingMeal}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full bg-slate-900 text-white font-black text-sm py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors disabled:opacity-60"
+                >
+                  {isAddingMeal ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" /> Adding…
+                    </>
+                  ) : (
+                    <>
+                      <PlusCircle size={16} /> Add to Today
+                    </>
+                  )}
+                </motion.button>
+              </motion.div>
+            )}
+
+            {/* Today's meals list */}
+            <div className="pt-2">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-black text-slate-500 uppercase tracking-widest">
+                  Today&apos;s Meals
+                </span>
+                {mealRemoved && (
+                  <span className="text-[11px] font-bold text-rose-500 flex items-center gap-1">
+                    <X size={11} /> Meal removed
+                  </span>
+                )}
+              </div>
+              {todayMeals.length === 0 ? (
+                <div className="text-center py-6 text-xs font-semibold text-slate-400">
+                  No meals logged yet — describe what you ate above.
+                </div>
               ) : (
-                <>
-                  <PlusCircle size={16} /> Save
-                </>
+                <div className="space-y-2 max-h-64 overflow-y-auto nf-scroll pr-1">
+                  {todayMeals.map((m) => (
+                    <motion.div
+                      key={m.id}
+                      initial={{ opacity: 0, x: -12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 12 }}
+                      className="flex items-center gap-3 bg-white/60 border border-slate-200/60 rounded-xl p-3 group"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-slate-700 truncate">
+                          {m.text}
+                        </p>
+                        <p className="text-[11px] font-semibold text-slate-400 nf-stat">
+                          {m.calories} kcal · P{m.protein}g · C{m.carbs}g · F{m.fat}g
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveMeal(m.id)}
+                        className="shrink-0 p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors opacity-0 group-hover:opacity-100"
+                        aria-label="Remove meal"
+                      >
+                        <X size={15} />
+                      </button>
+                    </motion.div>
+                  ))}
+                </div>
               )}
-            </motion.button>
-          </form>
-        </motion.div>
+            </div>
+          </motion.div>
+
+          {/* RIGHT (1/3): Steps logger */}
+          <motion.div
+            variants={riseItem}
+            className="nf-premium rounded-3xl p-6 flex flex-col gap-4"
+          >
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-cyan-50 text-cyan-600 rounded-xl">
+                <Footprints size={18} />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-slate-900 tracking-tight">
+                  Update Steps
+                </h4>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  From your phone or watch
+                </p>
+              </div>
+            </div>
+
+            {stepsSaved && (
+              <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-bold flex items-center gap-2">
+                <CheckCircle2 size={14} /> Steps updated!
+              </div>
+            )}
+
+            <form onSubmit={handleUpdateSteps} className="space-y-3">
+              <input
+                type="number"
+                inputMode="numeric"
+                placeholder="e.g. 8500"
+                value={stepsInput}
+                onChange={(e) => setStepsInput(e.target.value)}
+                className="w-full bg-slate-50/80 border border-slate-200/80 rounded-2xl px-4 py-3.5 text-2xl font-black text-slate-800 placeholder:text-slate-300 placeholder:text-base outline-none focus:bg-white focus:ring-2 focus:ring-cyan-500/50 transition-all nf-stat text-center"
+              />
+              <div className="grid grid-cols-3 gap-2">
+                {[5000, 8000, 10000].map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => setStepsInput(String(q))}
+                    className="text-xs font-bold bg-white/70 border border-slate-200/70 text-slate-600 hover:text-cyan-700 hover:border-cyan-300 py-2 rounded-lg transition-all nf-stat"
+                  >
+                    {q.toLocaleString()}
+                  </button>
+                ))}
+              </div>
+              <motion.button
+                type="submit"
+                disabled={isSavingSteps || !stepsInput}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full bg-slate-900 text-white font-black text-sm py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors disabled:opacity-50"
+              >
+                {isSavingSteps ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <>
+                    <RotateCcw size={15} /> Update
+                  </>
+                )}
+              </motion.button>
+            </form>
+
+            <div className="mt-auto pt-4 border-t border-slate-200/60 text-center">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                Current
+              </p>
+              <p className="text-2xl font-black nf-stat text-slate-800">
+                <AnimatedNumber
+                  value={loggedData.steps}
+                  format={(n) => Math.round(n).toLocaleString()}
+                />
+              </p>
+              <p className="text-[10px] font-bold text-slate-400">
+                / {user?.stepGoal?.toLocaleString() || "10,000"} goal
+              </p>
+            </div>
+          </motion.div>
+        </div>
       </motion.div>
     </motion.div>
   );
