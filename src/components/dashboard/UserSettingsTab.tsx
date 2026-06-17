@@ -15,9 +15,10 @@ import {
 } from "lucide-react";
 
 export default function UserSettingsTab() {
-  const { user } = useAuthStore();
+  const { user, updateProfile } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<"" | "success" | "error">("");
+  const [errorMsg, setErrorMsg] = useState("");
 
   // Populate local form states with live fallback user values
   const [name, setName] = useState(user?.name || "");
@@ -31,18 +32,32 @@ export default function UserSettingsTab() {
     user?.exerciseType || "Cardio",
   );
 
-  const handleUpdateProfile = (e: React.FormEvent) => {
+  const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setStatus("");
-
-    // The backend has no dedicated PUT /user/profile endpoint in this build,
-    // so we simulate a successful save locally to preserve the UX.
-    setTimeout(() => {
-      setIsLoading(false);
+    setErrorMsg("");
+    try {
+      await updateProfile({
+        name,
+        age: Number(age),
+        sex: user?.sex,
+        height: Number(height),
+        weight: Number(weight),
+        stepGoal: Number(stepGoal),
+        exerciseType,
+        dietPreference: user?.dietPreference,
+      });
       setStatus("success");
       setTimeout(() => setStatus(""), 4000);
-    }, 600);
+    } catch (err) {
+      setStatus("error");
+      setErrorMsg(
+        err instanceof Error ? err.message : "Failed to save settings.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -60,21 +75,22 @@ export default function UserSettingsTab() {
       <div className="flex items-start gap-2 p-4 bg-slate-50 border border-slate-200/60 rounded-2xl text-xs font-semibold text-slate-500">
         <Info size={14} className="shrink-0 mt-0.5 text-slate-400" />
         <p>
-          Account fields are display-only in this build. To persist biometric
-          changes, re-run onboarding with updated values.
+          Updating age, weight, or height recalculates your TDEE &amp; macro
+          targets automatically via the Mifflin-St Jeor equation. Changes save
+          to your account and sync to this device.
         </p>
       </div>
 
       {status === "success" && (
         <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-base font-bold flex items-center gap-2 animate-fadeIn">
-          <ShieldCheck size={18} className="text-emerald-600" /> Account metrics
-          reconfigured and synchronized to cluster.
+          <ShieldCheck size={18} className="text-emerald-600" /> Profile updated
+          — your TDEE &amp; macros have been recalculated.
         </div>
       )}
 
       {status === "error" && (
         <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl text-base font-bold flex items-center gap-2">
-          Configuration modification packet rejected. Check connection logs.
+          {errorMsg || "Failed to save settings. Please try again."}
         </div>
       )}
 

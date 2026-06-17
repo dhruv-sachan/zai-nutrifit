@@ -253,6 +253,63 @@ export const api = {
     return { user };
   },
 
+  /**
+   * PUT /api/user/profile — update name + biometric profile (recomputes
+   * TDEE/macros server-side when biometrics change). Offline-aware: if
+   * the server is unreachable, recomputes locally and saves to IndexedDB.
+   */
+  updateProfile: async (payload: {
+    name?: string;
+    age?: number;
+    sex?: string;
+    height?: number;
+    weight?: number;
+    stepGoal?: number;
+    exerciseType?: string;
+    dietPreference?: string;
+  }): Promise<SafeUser> => {
+    if (isOnline()) {
+      try {
+        const user = await request<SafeUser>("/api/user/profile", {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        });
+        await localSet(KEYS.user, user);
+        return user;
+      } catch {
+        // fall through to local computation
+      }
+    }
+    // Offline: recompute TDEE/macros locally from the new biometrics.
+    const { buildOnboardedFlatUser } = await import("@/lib/nutrition");
+    const local = await localGet<SafeUser>(KEYS.user);
+    if (!local) throw new Error("No local session");
+    const age = payload.age ?? local.age ?? 25;
+    const sex = (payload.sex ?? local.sex ?? "male") as "male" | "female";
+    const height = payload.height ?? local.height ?? 170;
+    const weight = payload.weight ?? local.weight ?? 70;
+    const stepGoal = payload.stepGoal ?? local.stepGoal ?? 10000;
+    const exerciseType = payload.exerciseType ?? local.exerciseType ?? "Standard";
+    const dietPreference =
+      payload.dietPreference ?? local.dietPreference ?? "Standard Balanced";
+    const flat = buildOnboardedFlatUser({
+      age,
+      sex,
+      heightCm: height,
+      weightKg: weight,
+      stepGoal,
+      exerciseType,
+      dietPreference,
+    });
+    const user: SafeUser = {
+      ...local,
+      name: payload.name ?? local.name,
+      ...flat,
+    };
+    await localSet(KEYS.user, user);
+    return user;
+  },
+
   /** POST /api/user/log — local-first (IndexedDB), background server sync. */
   saveLog: async (payload: {
     date?: string;

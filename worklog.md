@@ -262,3 +262,31 @@ Verification (Agent Browser, full offline cycle):
 Stage Summary:
 - NutriFit is now a local-first installable PWA. After first load, the app shell (HTML/JS/CSS/fonts/images) is cached by the service worker; the user profile + daily logs persist in IndexedDB; onboarding computes TDEE client-side; daily logs save locally and auto-sync when reconnected; AI features detect offline and show friendly messages. Works offline end-to-end after first online load. Fully online path unchanged.
 - Note for deployment: in dev mode the SW is network-first for HTML (so HMR works); a production build (`next build`) would enable true fully-offline page loads via cached static chunks. The local-first data layer works in both modes.
+
+---
+Task ID: SETTINGS-SAVE + INSTALL-PROMPT
+Agent: orchestrator (main)
+Task: Wire up PUT /user/profile so Settings actually saves (with TDEE recompute) + add an "Install app" PWA prompt. Also answer the MongoDB/Gemini .env question.
+
+Work Log:
+- Answered .env question: the app already has working AI (via z-ai-web-dev-sdk, pre-configured) + working DB (Prisma/SQLite). MongoDB Atlas string + Gemini API key are NOT needed and would have no effect as no code reads them. Offered to port to Mongoose+Gemini only if the professor requires it by name; recommended keeping the working stack.
+- src/app/api/user/profile/route.ts: added PUT handler (auth-required). Accepts flat payload (name, age, sex, height, weight, stepGoal, exerciseType, dietPreference). Merges with existing profile, recomputes TDEE (BMR×1.55) + macros (30/40/30) when biometrics change, validates ranges, saves to Prisma, returns flat user via toSafeUser. Kept the existing GET handler.
+- src/lib/api.ts: added api.updateProfile() — online-first (PUT /api/user/profile), offline fallback recomputes TDEE client-side via buildOnboardedFlatUser + saves to IndexedDB.
+- src/store/useAuthStore.ts: added updateProfile() action that calls api.updateProfile + updates the store user.
+- src/components/dashboard/UserSettingsTab.tsx: replaced the setTimeout stub with a real async save calling updateProfile(). Removed the "display-only" notice; new info note explains TDEE recompute. Success banner now says "Profile updated — your TDEE & macros have been recalculated." Error banner surfaces the actual err.message.
+- src/components/pwa/InstallPrompt.tsx (NEW): captures beforeinstallprompt, shows a glassmorphism bottom banner ("Install NutriFit — Add to your home screen for offline access") with Install + Dismiss buttons. 7-day dismissal TTL via localStorage. Hides when already running standalone. Mounted globally in layout.tsx.
+- layout.tsx: mounted <InstallPrompt /> alongside RegisterSW + OfflineBanner.
+
+Verification (Agent Browser):
+- Login as Riley (riley@nutrifit.test). Dashboard TDEE = 2612 kcal (33yo M 180cm 72kg). ✓
+- Settings tab: form pre-populated (name "Riley Quinn", age 33, weight 72, height 180, steps 10000). ✓
+- Edited name → "Riley Q", weight → 78. Clicked Save. Success banner appeared. ✓
+- Reloaded: greeting "Good Evening, Riley", TDEE = 2705 kcal (correct recompute: BMR 1745 × 1.55 = 2705 for 78kg). ✓ exact.
+- Settings form after reload: name "Riley Q", weight 78. ✓ persisted to server.
+- IndexedDB local user: name "Riley Q", weight 78, tdee 2705. ✓ offline-local synced.
+- No console/runtime errors. Offline banner still works (set offline → banner shows). ✓
+- InstallPrompt component mounts without errors (beforeinstallprompt doesn't fire in headless Chrome, but no crashes). ✓
+- ESLint: 0 errors (1 harmless font-link warning).
+
+Stage Summary:
+- Settings now persists name + biometric edits to the server AND local IndexedDB, with automatic TDEE/macro recompute. InstallPrompt is wired and will surface the native install flow on real HTTPS browsers that meet PWA criteria. Both features are offline-compatible (Settings recompute falls back to client-side math; InstallPrompt is purely client-side). The MongoDB/Gemini .env credentials remain unnecessary for the current working stack.

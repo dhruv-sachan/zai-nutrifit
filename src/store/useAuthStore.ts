@@ -35,6 +35,16 @@ type AuthState = {
     exerciseType: string;
     dietPreference: string;
   }) => Promise<SafeUser>;
+  updateProfile: (payload: {
+    name?: string;
+    age?: number;
+    sex?: string;
+    height?: number;
+    weight?: number;
+    stepGoal?: number;
+    exerciseType?: string;
+    dietPreference?: string;
+  }) => Promise<SafeUser>;
   resolveView: () => AppView;
 };
 
@@ -118,6 +128,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   completeOnboarding: async (payload) => {
     const { user } = await api.onboarding(payload);
     set({ user, isAuthenticated: true, view: "dashboard" });
+    return user;
+  },
+
+  updateProfile: async (payload) => {
+    const user = await api.updateProfile(payload);
+    set({ user });
     return user;
   },
 
