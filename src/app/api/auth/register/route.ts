@@ -48,9 +48,16 @@ export async function POST(request: Request) {
       data: { name, email, password: hashed },
     });
 
-    await setAuthCookie({ id: user.id, email: user.email, name: user.name });
+    const token = await setAuthCookie({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+    });
 
-    return NextResponse.json({ user: toSafeUser(user) }, { status: 201 });
+    return NextResponse.json(
+      { user: toSafeUser(user), token },
+      { status: 201 }
+    );
   } catch (err) {
     const status = err instanceof AuthError ? err.status : 500;
     const message =

@@ -41,9 +41,13 @@ export async function POST(request: Request) {
       throw new AuthError("Invalid email or password.", 401);
     }
 
-    await setAuthCookie({ id: user.id, email: user.email, name: user.name });
+    const token = await setAuthCookie({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+    });
 
-    return NextResponse.json({ user: toSafeUser(user) });
+    return NextResponse.json({ user: toSafeUser(user), token });
   } catch (err) {
     const status = err instanceof AuthError ? err.status : 500;
     const message =

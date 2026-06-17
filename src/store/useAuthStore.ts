@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { api } from "@/lib/api";
+import { api, setToken } from "@/lib/api";
 import type { SafeUser } from "@/lib/types";
 
 export type AppView = "landing" | "auth" | "onboarding" | "dashboard";
@@ -65,6 +65,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         hasChecked: true,
       });
     } catch {
+      // Stale or missing token — clear it so we don't keep sending it.
+      setToken(null);
       set({
         user: null,
         isAuthenticated: false,
