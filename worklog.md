@@ -391,3 +391,35 @@ Work Log:
 
 Stage Summary:
 - The entire dashboard is now premium SaaS 2026: every card is frosted glass with hover lift, every stat counts up, charts animate with gradient fills + glow, the sidebar active indicator slides with a spring (layoutId), tab transitions use AnimatePresence, the calorie ring draws with SVG stroke animation, macro bars animate fill + glow, chat bubbles spring in, typing indicator uses bouncing gradient dots, loading states use shimmer skeletons. All logic/API calls/localStorage caching preserved. Lint clean, no crashes, mobile responsive.
+
+---
+Task ID: FLOATING-CHATBOT
+Agent: orchestrator (main)
+Task: Convert the AI Copilot from a stuck menu tab into a floating, closable chatbot widget using the uploaded chatbot icon
+
+Work Log:
+- Copied uploaded chatbot icon → public/chatbot-icon.png (blue rounded chatbot face).
+- Created src/components/dashboard/FloatingChatbot.tsx:
+  • Floating launcher button (bottom-right, size-16 circle) using /chatbot-icon.png inside a gradient ring + live-pulse ping. Spring entrance, hover scale, tap shrink. Hides when panel open.
+  • Glass chat panel with aurora border — full-height on mobile (85vh), fixed 26rem on desktop bottom-right. Header has the chatbot icon + "NutriFit AI" + online status + a CLOSE (X) button (rotate-on-hover spring).
+  • Reuses the full Copilot logic: api.chat with userContext (age/weight/height/stepGoal/exerciseType/dietPreference/targetCalories/macros), quick-template chips (Meal Plan/Workout Tips/Hydration), 3 bouncing gradient-dot typing indicator, spring-animated message bubbles with the chatbot icon avatar.
+  • Closeable THREE ways: X button, Escape key, backdrop click (mobile). Users can never get stuck.
+  • Conversation persists across tab switches (state lives in the widget, mounted once in DashboardLayout).
+  • Listens for a `nutrifit:open-chat` custom event so any button can open it.
+- Removed "AI Copilot" / "Copilot" nav item from Sidebar.tsx (desktop) + DashboardLayout.tsx (mobile tab strip). Deleted AICopilotTab.tsx (no longer used). Removed the copilot case from Dashboard.tsx tab switch.
+- Mounted <FloatingChatbot /> in DashboardLayout so it's available on EVERY dashboard tab.
+- Wired the Overview tab's "ASK AI COPILOT" button to dispatch `nutrifit:open-chat` → opens the floating chatbot.
+- Updated Sidebar status pill text → "AI Assistant Ready".
+
+Verification (Agent Browser):
+- Login → dashboard. Nav items: Overview Metrics, Kinetic Analytics, AI Meal Analyzer, Performance Pathways, Wellness Store, Settings, Terminate Session. NO Copilot tab. ✓
+- Floating chatbot button (with uploaded icon + pulse) visible bottom-right. ✓
+- Click opens glass chat panel with header "NutriFit AI", online status, close (X) button, input. ✓
+- Sent "How much protein should I eat daily?" → API 200 in 2.6s → AI replied referencing the user's actual profile ("your current daily protein target is 203g, aligns with your weight training and core stability focus"). ✓
+- Close (X) button → panel closes, floating button reappears. ✓
+- Switched to Analytics tab → floating button still present → opens correctly → conversation preserved. ✓
+- Overview "ASK AI COPILOT" button → dispatches event → opens chatbot. ✓
+- ESLint 0 errors, tsc 0 errors in src/.
+
+Stage Summary:
+- The AI Copilot is now a floating chatbot widget (bottom-right, closable via X/Escape/backdrop) available on every dashboard tab — users can no longer get stuck. Uses the uploaded blue chatbot icon as the launcher + avatar. Full chat logic preserved (userContext-aware AI replies, quick templates, typing indicator). Old menu tab removed entirely.

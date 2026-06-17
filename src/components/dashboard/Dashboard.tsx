@@ -8,7 +8,6 @@ import AnalyticsTab from "./AnalyticsTab";
 import NutritionTab from "./NutritionTab";
 import FitnessTab from "./FitnessTab";
 import WellnessStoreTab from "./WellnessStoreTab";
-import AICopilotTab from "./AICopilotTab";
 import TracksTab from "./TracksTab";
 import UserSettingsTab from "./UserSettingsTab";
 
@@ -28,8 +27,6 @@ export default function Dashboard() {
         return <FitnessTab user={user} />;
       case "store":
         return <WellnessStoreTab />;
-      case "copilot":
-        return <AICopilotTab user={user} />;
       case "tracks":
         return <TracksTab />;
       case "settings":

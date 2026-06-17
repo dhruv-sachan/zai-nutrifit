@@ -7,13 +7,13 @@ import {
   Apple,
   Dumbbell,
   ShoppingBag,
-  Bot,
   Settings,
   LogOut,
   Sparkles,
 } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import Sidebar from "./Sidebar";
+import { FloatingChatbot } from "./FloatingChatbot";
 
 const navItems = [
   { id: "overview", name: "Overview", icon: LayoutDashboard },
@@ -21,7 +21,6 @@ const navItems = [
   { id: "nutrition", name: "Nutrition", icon: Apple },
   { id: "fitness", name: "Fitness", icon: Dumbbell },
   { id: "store", name: "Store", icon: ShoppingBag },
-  { id: "copilot", name: "Copilot", icon: Bot },
   { id: "settings", name: "Settings", icon: Settings },
 ];
 
@@ -140,6 +139,9 @@ export default function DashboardLayout({
           </div>
         </footer>
       </main>
+
+      {/* Floating AI chatbot — available on every dashboard tab */}
+      <FloatingChatbot />
     </div>
   );
 }

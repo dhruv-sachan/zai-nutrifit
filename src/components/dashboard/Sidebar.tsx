@@ -7,7 +7,6 @@ import {
   Apple,
   Dumbbell,
   ShoppingBag,
-  Bot,
   Settings,
   LogOut,
   Sparkles,
@@ -26,7 +25,6 @@ const navItems: NavItem[] = [
   { id: "nutrition", name: "AI Meal Analyzer", icon: Apple },
   { id: "fitness", name: "Performance Pathways", icon: Dumbbell },
   { id: "store", name: "Wellness Store", icon: ShoppingBag },
-  { id: "copilot", name: "AI Copilot", icon: Bot },
   { id: "settings", name: "Settings", icon: Settings },
 ];
 
@@ -138,7 +136,7 @@ export default function Sidebar({
             <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
           </span>
-          AI Copilot Online
+          AI Assistant Ready
         </div>
       </motion.div>
 

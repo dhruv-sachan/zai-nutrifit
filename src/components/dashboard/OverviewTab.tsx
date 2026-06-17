@@ -326,6 +326,9 @@ export default function OverviewTab() {
             </div>
 
             <motion.button
+              onClick={() =>
+                window.dispatchEvent(new CustomEvent("nutrifit:open-chat"))
+              }
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               className="nf-btn-gradient nf-shimmer relative overflow-hidden px-6 py-3 rounded-xl font-black text-sm uppercase tracking-wider flex items-center gap-2"
