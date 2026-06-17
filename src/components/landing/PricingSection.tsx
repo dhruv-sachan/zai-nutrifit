@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Sparkles } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import { useAuthStore } from "@/store/useAuthStore";
 
 const PricingSection = () => {
@@ -57,7 +57,7 @@ const PricingSection = () => {
     },
   ];
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
@@ -65,7 +65,7 @@ const PricingSection = () => {
     },
   };
 
-  const cardVariants = {
+  const cardVariants: Variants = {
     hidden: { opacity: 0, y: 30 },
     show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
   };

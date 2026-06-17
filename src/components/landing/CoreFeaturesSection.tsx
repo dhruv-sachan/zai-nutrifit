@@ -1,7 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 
 const CoreFeaturesSection = () => {
   const coreFeatures = [
@@ -74,7 +74,7 @@ const CoreFeaturesSection = () => {
   ];
 
   // Framer Motion variants for the staggered roll-in effect
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
@@ -82,7 +82,7 @@ const CoreFeaturesSection = () => {
     },
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 40 },
     show: {
       opacity: 1,

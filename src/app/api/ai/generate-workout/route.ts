@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession, AuthError } from "@/lib/auth";
+import { getSession, toSafeUser, AuthError } from "@/lib/auth";
 import { aiComplete, extractJSON } from "@/lib/ai";
 import type { Exercise, SafeUser } from "@/lib/types";
 
@@ -15,17 +15,19 @@ import type { Exercise, SafeUser } from "@/lib/types";
  */
 export async function POST(request: Request) {
   try {
-    const user = await getSession();
-    if (!user) {
+    const session = await getSession();
+    if (!session) {
       throw new AuthError("Unauthorized — please sign in.", 401);
     }
 
-    if (!user.onboardingDone) {
+    if (!session.onboardingDone) {
       throw new AuthError(
         "Please complete onboarding before generating a workout.",
         400
       );
     }
+    // Flatten the nested profile Json into top-level biometric fields.
+    const user = toSafeUser(session);
 
     const body = await request.json().catch(() => ({}));
     const fitnessLevel = String(

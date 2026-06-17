@@ -31,33 +31,38 @@ export async function PUT(request: Request) {
         : undefined;
 
     // --- Biometric profile fields (optional, only updated if provided) ---
-    const existing = (user.profile as Record<string, unknown> | null) ?? {};
+    type StoredProfile = {
+      age?: number;
+      sex?: string;
+      heightCm?: number;
+      weightKg?: number;
+      activityLevel?: string;
+      goal?: string;
+      targetCalories?: number;
+      macros?: { protein: number; carbs: number; fat: number };
+      stepGoal?: number;
+      exerciseType?: string;
+      dietPreference?: string;
+    };
+    const existing = (user.profile as StoredProfile | null) ?? {};
     const age =
-      body?.age !== undefined ? Number(body.age) : (existing.age as number | undefined);
+      body?.age !== undefined ? Number(body.age) : existing.age;
     const sex =
-      body?.sex !== undefined
-        ? String(body.sex)
-        : (existing.sex as string | undefined);
+      body?.sex !== undefined ? String(body.sex) : existing.sex;
     const height =
-      body?.height !== undefined
-        ? Number(body.height)
-        : (existing.heightCm as number | undefined);
+      body?.height !== undefined ? Number(body.height) : existing.heightCm;
     const weight =
-      body?.weight !== undefined
-        ? Number(body.weight)
-        : (existing.weightKg as number | undefined);
+      body?.weight !== undefined ? Number(body.weight) : existing.weightKg;
     const stepGoal =
-      body?.stepGoal !== undefined
-        ? Number(body.stepGoal)
-        : (existing.stepGoal as number | undefined);
+      body?.stepGoal !== undefined ? Number(body.stepGoal) : existing.stepGoal;
     const exerciseType =
       body?.exerciseType !== undefined
         ? String(body.exerciseType)
-        : (existing.exerciseType as string | undefined);
+        : existing.exerciseType;
     const dietPreference =
       body?.dietPreference !== undefined
         ? String(body.dietPreference)
-        : (existing.dietPreference as string | undefined);
+        : existing.dietPreference;
 
     // Validate biometrics if we have enough to recompute.
     const canCompute =
@@ -87,18 +92,18 @@ export async function PUT(request: Request) {
       macros = calculateMacros(targetCalories);
     }
 
-    const updatedProfile = {
-      age: age ?? existing.age,
-      sex: sex ?? existing.sex,
-      heightCm: height ?? existing.heightCm,
-      weightKg: weight ?? existing.weightKg,
-      activityLevel: (existing.activityLevel as string) ?? "moderate",
-      goal: (existing.goal as string) ?? "maintain",
+    const updatedProfile: StoredProfile = {
+      age,
+      sex,
+      heightCm: height,
+      weightKg: weight,
+      activityLevel: existing.activityLevel ?? "moderate",
+      goal: existing.goal ?? "maintain",
       targetCalories,
       macros,
-      stepGoal: stepGoal ?? existing.stepGoal,
-      exerciseType: exerciseType ?? existing.exerciseType,
-      dietPreference: dietPreference ?? existing.dietPreference,
+      stepGoal,
+      exerciseType,
+      dietPreference,
     };
 
     const updated = await db.user.update({

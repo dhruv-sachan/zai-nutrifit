@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession, AuthError } from "@/lib/auth";
+import { getSession, toSafeUser, AuthError } from "@/lib/auth";
 import { aiComplete } from "@/lib/ai";
 import type { SafeUser } from "@/lib/types";
 
@@ -11,10 +11,13 @@ import type { SafeUser } from "@/lib/types";
  */
 export async function POST(request: Request) {
   try {
-    const user = await getSession();
-    if (!user) {
+    const session = await getSession();
+    if (!session) {
       throw new AuthError("Not authenticated", 401);
     }
+    // Flatten the nested profile Json into the top-level fields the
+    // prompt expects (user.age, user.macros, etc.).
+    const user = toSafeUser(session);
 
     const body = await request.json().catch(() => ({}));
     const message = String(body?.message ?? "").trim();
