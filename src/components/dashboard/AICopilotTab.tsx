@@ -52,11 +52,15 @@ export default function AICopilotTab({ user }: { user: SafeUser | null }) {
       ]);
     } catch (err) {
       console.error("AI node response processing fault:", err);
+      const text =
+        err instanceof Error && err.message
+          ? err.message
+          : "Critical system connection timeout error. Check your server configurations.";
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          text: "Critical system connection timeout error. Check your server configurations.",
+          text,
         },
       ]);
     } finally {

@@ -129,8 +129,8 @@
 
 /* ============================================================
    NutriFit fonts — Inter (body), Montserrat (headlines), Gabriela (accent)
+   (The @import is at the top of this file per CSS ordering rules.)
    ============================================================ */
-@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Gabriela&family=Inter:wght@300;400;500;600;700&display=swap");
 
 .font-montserrat {
   font-family: "Montserrat", sans-serif;

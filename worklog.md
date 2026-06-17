@@ -218,3 +218,47 @@ Work Log:
 Stage Summary:
 - Full port complete and browser-verified end-to-end. The app now mirrors the user's original Vite/Express/MongoDB NutriFit: dark neon cinematic landing, light glassmorphism auth+onboarding (with woman-thinking image), tabbed dashboard with Sidebar (Overview/Analytics/Nutrition/Fitness/Store/Copilot/Settings), AI Copilot chat, meal analyzer, workout generator with localStorage caching, daily logging, and weekly logs — all running on Next.js 16 + Prisma(SQLite) + z-ai-web-dev-sdk with JWT HTTP-only cookie + Bearer fallback auth.
 - Known stubs (display-only, per dashboard agent): TracksTab + UserSettingsTab render full UI but don't persist edits (no PUT /user/profile route; re-running onboarding is the persistence path). All other tabs are fully wired.
+
+---
+Task ID: OFFLINE-PWA
+Agent: orchestrator (main)
+Task: Make NutriFit a local-first installable PWA that works fully offline (Option 2)
+
+Work Log:
+- src/lib/nutrition.ts: added pure `buildOnboardedFlatUser()` — computes TDEE/macros client-side via Mifflin-St Jeor, identical to the server's result, so onboarding works offline.
+- src/lib/localDb.ts (NEW): tiny IndexedDB key-value wrapper (localGet/localSet/localDel + KEYS = {user, logs, pendingSync}). Falls back to no-op if IndexedDB unavailable.
+- src/hooks/useOnlineStatus.ts (NEW): reactive navigator.onLine + online/offline events.
+- src/lib/api.ts (rework): local-first data layer.
+  • profile(): online-first, falls back to localGet('user') when offline/server unreachable.
+  • onboarding(): online-first; offline → computes client-side via buildOnboardedFlatUser, saves to IndexedDB.
+  • saveLog(): writes to IndexedDB first (upsert by date), queues to pendingSync, background-syncs to /api/user/log when online.
+  • weeklyLogs(): reads local IndexedDB, merges with server when online.
+  • chat/analyzeMeal/generateWorkout: throw friendly OfflineError when navigator.onLine is false.
+  • syncPendingLogs(): pushes queued logs to the server (called on app load + on the online event).
+  • register/login: require online (first-time auth needs the server); save user to IndexedDB on success.
+- src/store/useAuthStore.ts (rework): offline-aware. checkAuth uses api.profile() (local fallback), tracks `offlineMode`. completeOnboarding works offline. logout clears IndexedDB.
+- PWA shell:
+  • public/manifest.json — name, icons (1024 PNG + SVG), standalone display, theme #0B1120.
+  • public/icon-1024.png — AI-generated app icon (apple + leaf + pulse, cyan/teal gradient).
+  • public/sw.js — service worker: network-first for navigations (offline → cached app shell), stale-while-revalidate for _next/static, cache-first for static assets + Google Fonts, never intercepts /api/*.
+  • src/components/pwa/RegisterSW.tsx — registers the SW on load.
+  • src/components/pwa/OfflineBanner.tsx — global sticky amber banner when offline; brief green "Back online — synced" toast on reconnect; triggers syncPendingLogs + checkAuth on the online event.
+  • layout.tsx: mounts RegisterSW + OfflineBanner, adds manifest + theme-color + apple-web-app meta + font <link> tags.
+- Bug fixes during verification:
+  • CloudDone → CheckCircle2 (not a lucide export).
+  • CSS @import url(fonts) must precede other rules → moved to <link> in layout head (Turbopack strictness).
+  • /api/user/log 500 "Unknown argument exercises" → Prisma client was stale after schema change; db:generate + dev server restart fixed it.
+  • AICopilotTab catch now surfaces err.message (so OfflineError text shows instead of generic timeout text).
+
+Verification (Agent Browser, full offline cycle):
+- Register (Riley) + onboard online → user cached in IndexedDB. TDEE 2612 kcal (33yo M 180cm 72kg: BMR 1685 × 1.55). ✓ exact.
+- Set browser offline → amber "You're offline — your data is saved on this device..." banner. ✓
+- AI Copilot offline → "I'm offline right now — I need a connection to generate new responses. Your profile and logs are still available." ✓
+- Overview > log form offline (steps 9000, kcal 1600, P140/C180/F50) → saved to IndexedDB (logs:1, pendingSync:1) with correct values. ✓
+- Reload offline → app loads from service worker cache; dashboard renders Riley's session from local data; TDEE 2612 shows. ✓
+- Go back online → "Back online — local changes synced" toast; pendingSync drained to 0; POST /api/user/log 200 confirmed in dev log. ✓
+- ESLint: 0 errors (1 warning: no-page-custom-font — Next.js convention suggestion, harmless).
+
+Stage Summary:
+- NutriFit is now a local-first installable PWA. After first load, the app shell (HTML/JS/CSS/fonts/images) is cached by the service worker; the user profile + daily logs persist in IndexedDB; onboarding computes TDEE client-side; daily logs save locally and auto-sync when reconnected; AI features detect offline and show friendly messages. Works offline end-to-end after first online load. Fully online path unchanged.
+- Note for deployment: in dev mode the SW is network-first for HTML (so HMR works); a production build (`next build`) would enable true fully-offline page loads via cached static chunks. The local-first data layer works in both modes.

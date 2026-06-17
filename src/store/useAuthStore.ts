@@ -1,8 +1,9 @@
 "use client";
 
 import { create } from "zustand";
-import { api, setToken } from "@/lib/api";
+import { api, setToken, syncPendingLogs, isOnline } from "@/lib/api";
 import type { SafeUser } from "@/lib/types";
+import { localGet, localDel, KEYS } from "@/lib/localDb";
 
 export type AppView = "landing" | "auth" | "onboarding" | "dashboard";
 
@@ -12,6 +13,8 @@ type AuthState = {
   isCheckingAuth: boolean;
   view: AppView;
   hasChecked: boolean;
+  /** True when the session is being served from local storage (offline). */
+  offlineMode: boolean;
 
   setView: (view: AppView) => void;
   checkAuth: () => Promise<void>;
@@ -46,21 +49,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isCheckingAuth: true,
   view: "landing",
   hasChecked: false,
+  offlineMode: false,
 
   setView: (view) => set({ view }),
 
   checkAuth: async () => {
     set({ isCheckingAuth: true });
     try {
-      // GET /api/user/profile returns the flat user object directly.
+      // api.profile() is online-first with a local fallback.
       const user = await api.profile();
+      const wasOffline = !isOnline();
       set({
         user,
         isAuthenticated: true,
         view: viewForUser(user),
         isCheckingAuth: false,
         hasChecked: true,
+        offlineMode: wasOffline,
       });
+      // If we came online, push any queued logs.
+      if (!wasOffline) void syncPendingLogs();
     } catch {
       setToken(null);
       set({
@@ -69,31 +77,46 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         view: "landing",
         isCheckingAuth: false,
         hasChecked: true,
+        offlineMode: false,
       });
     }
   },
 
   login: async (email, password) => {
     const { user } = await api.login(email, password);
-    set({ user, isAuthenticated: true, view: viewForUser(user) });
+    set({
+      user,
+      isAuthenticated: true,
+      view: viewForUser(user),
+      offlineMode: false,
+    });
     return user;
   },
 
   register: async (name, email, password) => {
     const { user } = await api.register(name, email, password);
-    set({ user, isAuthenticated: true, view: viewForUser(user) });
+    set({
+      user,
+      isAuthenticated: true,
+      view: viewForUser(user),
+      offlineMode: false,
+    });
     return user;
   },
 
   logout: async () => {
     await api.logout();
-    set({ user: null, isAuthenticated: false, view: "landing" });
+    await localDel(KEYS.user);
+    set({
+      user: null,
+      isAuthenticated: false,
+      view: "landing",
+      offlineMode: false,
+    });
   },
 
   completeOnboarding: async (payload) => {
     const { user } = await api.onboarding(payload);
-    // Inject fresh user directly (mirrors the original Onboarding.jsx
-    // pattern that bypasses cached GET /profile).
     set({ user, isAuthenticated: true, view: "dashboard" });
     return user;
   },

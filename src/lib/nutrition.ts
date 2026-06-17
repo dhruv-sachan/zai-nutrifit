@@ -93,3 +93,51 @@ export function buildProfile(input: {
     macros,
   };
 }
+
+/**
+ * Assemble the flat "onboarded user" object from raw onboarding form data.
+ *
+ * This is a PURE function — it runs client-side so onboarding works fully
+ * offline (TDEE + macros computed locally via Mifflin-St Jeor). The server
+ * onboarding route produces an identical result, so a locally-computed user
+ * and a server-synced user are interchangeable.
+ *
+ * The raw `exerciseType`/`dietPreference` labels (e.g.
+ * "Core Stability & Rehabilitation") are preserved verbatim, matching the
+ * server's stored-profile shape.
+ */
+export function buildOnboardedFlatUser(input: {
+  age: number;
+  sex: Sex;
+  heightCm: number;
+  weightKg: number;
+  stepGoal: number;
+  exerciseType: string;
+  dietPreference: string;
+}) {
+  // Use enum values just to drive the calorie/macro math; the raw labels
+  // are kept for display (exactly as the server does).
+  const profile = buildProfile({
+    age: input.age,
+    sex: input.sex,
+    heightCm: input.heightCm,
+    weightKg: input.weightKg,
+    stepGoal: input.stepGoal,
+    exerciseType: "moderate",
+    dietPreference: "balanced",
+  });
+  return {
+    age: input.age,
+    sex: input.sex,
+    height: input.heightCm,
+    weight: input.weightKg,
+    activityLevel: "moderate" as const,
+    goal: "maintain" as const,
+    targetCalories: profile.targetCalories,
+    macros: profile.macros,
+    stepGoal: input.stepGoal,
+    exerciseType: input.exerciseType,
+    dietPreference: input.dietPreference,
+    onboardingDone: true as const,
+  };
+}

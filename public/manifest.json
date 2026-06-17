@@ -1,0 +1,32 @@
+{
+  "name": "NutriFit — AI Health & Nutrition",
+  "short_name": "NutriFit",
+  "description": "AI-powered health platform: personalized TDEE & macro targets, AI workouts, meal analysis, and an AI Copilot. Works offline.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0B1120",
+  "theme_color": "#0B1120",
+  "categories": ["health", "fitness", "lifestyle", "productivity"],
+  "icons": [
+    {
+      "src": "/icon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
