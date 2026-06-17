@@ -3,6 +3,7 @@ import type {
   MealEstimate,
   SafeUser,
   UserProfile,
+  DailyLogEntry,
 } from "@/lib/types";
 
 /**
@@ -56,9 +57,12 @@ async function request<T>(
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const message =
-      (data && typeof data === "object" && "error" in data
-        ? String((data as { error: unknown }).error)
-        : null) || `Request failed (${res.status})`;
+      (data && typeof data === "object" &&
+        ("message" in data
+          ? String((data as { message: unknown }).message)
+          : "error" in data
+          ? String((data as { error: unknown }).error)
+          : null)) || `Request failed (${res.status})`;
     throw new Error(message);
   }
   return data as T;
@@ -70,14 +74,15 @@ export const api = {
     email: string,
     password: string
   ): Promise<{ user: SafeUser }> => {
-    const res = await request<{ user: SafeUser; token: string }>(
-      "/api/auth/register",
-      {
-        method: "POST",
-        body: JSON.stringify({ name, email, password }),
-      }
-    );
-    setToken(res.token);
+    const res = await request<{
+      user: SafeUser;
+      token?: string;
+      message?: string;
+    }>("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ name, email, password }),
+    });
+    if (res.token) setToken(res.token);
     return { user: res.user };
   },
 
@@ -85,53 +90,94 @@ export const api = {
     email: string,
     password: string
   ): Promise<{ user: SafeUser }> => {
-    const res = await request<{ user: SafeUser; token: string }>(
-      "/api/auth/login",
-      {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
-      }
-    );
-    setToken(res.token);
+    const res = await request<{
+      user: SafeUser;
+      token?: string;
+      message?: string;
+    }>("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    if (res.token) setToken(res.token);
     return { user: res.user };
   },
 
-  logout: async (): Promise<{ success: boolean }> => {
-    const res = await request<{ success: boolean }>("/api/auth/logout", {
-      method: "POST",
-    });
+  logout: async (): Promise<void> => {
+    try {
+      await request<{ message?: string }>("/api/auth/logout", {
+        method: "POST",
+      });
+    } catch {
+      // ignore network errors on logout
+    }
     setToken(null);
-    return res;
   },
 
-  profile: () =>
-    request<{ user: SafeUser }>("/api/user/profile", { method: "GET" }),
+  /** GET /api/user/profile — returns the flat user object directly. */
+  profile: () => request<SafeUser>("/api/user/profile", { method: "GET" }),
 
   onboarding: (payload: {
     age: number;
-    sex: string;
-    heightCm: number;
-    weightKg: number;
+    gender?: string;
+    sex?: string;
+    height: number;
+    weight: number;
     stepGoal: number;
     exerciseType: string;
     dietPreference: string;
   }) =>
-    request<{ user: SafeUser }>("/api/user/onboarding", {
+    request<{ user: SafeUser; message?: string }>("/api/user/onboarding", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
 
-  generateWorkout: (focus: string, duration: number) =>
-    request<{ exercises: Exercise[] }>("/api/ai/generate-workout", {
+  /** POST /api/user/log — upsert a daily log entry. */
+  saveLog: (payload: {
+    date?: string;
+    calories?: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+    steps?: number;
+    water?: number;
+    sleep?: number;
+    exercises?: Exercise[];
+  }) =>
+    request<{ message: string; log: DailyLogEntry }>("/api/user/log", {
       method: "POST",
-      body: JSON.stringify({ focus, duration }),
+      body: JSON.stringify(payload),
     }),
 
-  analyzeMeal: (meal: string) =>
-    request<{ estimate: MealEstimate }>("/api/ai/analyze-meal", {
+  /** GET /api/user/logs/weekly — last 7 days of logs. */
+  weeklyLogs: () =>
+    request<DailyLogEntry[]>("/api/user/logs/weekly", { method: "GET" }),
+
+  generateWorkout: (payload: {
+    fitnessLevel?: string;
+    workoutFocus?: string;
+    equipment?: string;
+    userContext?: Partial<SafeUser>;
+  }) =>
+    request<{ success: boolean; plan: Exercise[]; exercises: Exercise[] }>(
+      "/api/ai/generate-workout",
+      { method: "POST", body: JSON.stringify(payload) }
+    ),
+
+  analyzeMeal: (mealDescription: string) =>
+    request<{ analysis: MealEstimate; estimate: MealEstimate }>(
+      "/api/ai/analyze-meal",
+      { method: "POST", body: JSON.stringify({ mealDescription }) }
+    ),
+
+  /** POST /api/ai/chat — the AI Copilot. */
+  chat: (payload: {
+    message: string;
+    userContext?: Partial<SafeUser>;
+  }) =>
+    request<{ reply: string }>("/api/ai/chat", {
       method: "POST",
-      body: JSON.stringify({ meal }),
+      body: JSON.stringify(payload),
     }),
 };
 
-export type { SafeUser, UserProfile, Exercise, MealEstimate };
+export type { SafeUser, UserProfile, Exercise, MealEstimate, DailyLogEntry };

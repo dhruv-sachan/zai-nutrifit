@@ -30,19 +30,21 @@ model User {
 
 /// A single day's tracked metrics for a user (keyed by userId + date).
 model DailyLog {
-  id       String @id @default(cuid())
-  userId   String
+  id        String @id @default(cuid())
+  userId    String
   /// YYYY-MM-DD (string keeps SQLite lookups simple & timezone-safe).
-  date     String
-  calories Float  @default(0)
-  protein  Float  @default(0)
-  carbs    Float  @default(0)
-  fat      Float  @default(0)
-  steps    Int    @default(0)
-  water    Float  @default(0)
-  sleep    Float  @default(0)
+  date      String
+  calories  Float  @default(0)
+  protein   Float  @default(0)
+  carbs     Float  @default(0)
+  fat       Float  @default(0)
+  steps     Int    @default(0)
+  water     Float  @default(0)
+  sleep     Float  @default(0)
+  /// AI-generated workout exercises logged for this day (JSON array).
+  exercises Json?
 
-  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
   @@index([userId, date])

@@ -2,6 +2,7 @@ import { cookies, headers } from "next/headers";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { db } from "@/lib/db";
+import type { SafeUser } from "@/lib/types";
 
 const JWT_SECRET = process.env.JWT_SECRET || "nutrifit-dev-secret-change-in-production";
 const COOKIE_NAME = "nutrifit_token";
@@ -168,6 +169,47 @@ export class AuthError extends Error {
     super(message);
     this.status = status;
   }
+}
+
+/**
+ * The raw user row from Prisma (with nested `profile` Json).
+ * Used as the input type for `toSafeUser`.
+ */
+export type RawUser = {
+  id: string;
+  name: string;
+  email: string;
+  onboardingDone: boolean;
+  profile: unknown;
+  createdAt: Date;
+};
+
+/**
+ * Flatten the nested `profile` Json into the top-level fields the
+ * frontend expects (user.age, user.macros.protein, user.targetCalories,
+ * etc.). This mirrors the original Express API's response shape so the
+ * ported React components work unchanged.
+ */
+export function toSafeUser(user: RawUser): SafeUser {
+  const p = (user.profile as Record<string, unknown> | null) ?? null;
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    onboardingDone: user.onboardingDone,
+    age: p?.age as number | undefined,
+    sex: p?.sex as string | undefined,
+    height: p?.heightCm as number | undefined,
+    weight: p?.weightKg as number | undefined,
+    activityLevel: (p?.activityLevel as string | undefined) ?? "moderate",
+    goal: (p?.goal as string | undefined) ?? "maintain",
+    targetCalories: p?.targetCalories as number | undefined,
+    macros: p?.macros as { protein: number; carbs: number; fat: number } | undefined,
+    stepGoal: p?.stepGoal as number | undefined,
+    exerciseType: p?.exerciseType as string | undefined,
+    dietPreference: p?.dietPreference as string | undefined,
+    createdAt: user.createdAt.toISOString(),
+  };
 }
 
 export { COOKIE_NAME };

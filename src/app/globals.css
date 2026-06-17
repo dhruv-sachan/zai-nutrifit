@@ -128,6 +128,42 @@
 }
 
 /* ============================================================
+   NutriFit fonts — Inter (body), Montserrat (headlines), Gabriela (accent)
+   ============================================================ */
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Gabriela&family=Inter:wght@300;400;500;600;700&display=swap");
+
+.font-montserrat {
+  font-family: "Montserrat", sans-serif;
+}
+.font-gabriela {
+  font-family: "Gabriela", serif;
+}
+body {
+  font-family: "Inter", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+html {
+  scroll-behavior: smooth;
+}
+
+/* Neon headline glow for the dark cinematic hero */
+.hero-text-glow {
+  filter: drop-shadow(0 0 15px rgba(0, 255, 209, 0.3))
+    drop-shadow(0 0 25px rgba(0, 229, 255, 0.25))
+    drop-shadow(0 0 40px rgba(34, 197, 94, 0.2));
+}
+
+/* Fade-in utility used by dashboard tabs */
+@keyframes nf-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeIn {
+  animation: nf-fade-in 0.4s ease-out both;
+}
+
+/* ============================================================
    NutriFit — premium light glassmorphism
    ============================================================ */
 

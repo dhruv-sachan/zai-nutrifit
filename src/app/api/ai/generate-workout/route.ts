@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server";
 import { getSession, AuthError } from "@/lib/auth";
 import { aiComplete, extractJSON } from "@/lib/ai";
-import type { Exercise, UserProfile } from "@/lib/types";
-import type { DietPreference } from "@/lib/nutrition";
+import type { Exercise, SafeUser } from "@/lib/types";
 
+/**
+ * POST /api/ai/generate-workout
+ * Mirrors the original Express route's payload (`fitnessLevel`,
+ * `workoutFocus`, `equipment`, `userContext`) and prompt structure,
+ * fixed to actually call the model (the original had an undefined `ai`
+ * variable) via z-ai-web-dev-sdk.
+ *
+ * Biometrics come from the authenticated session (flattened profile),
+ * with `userContext` from the client as a fallback.
+ */
 export async function POST(request: Request) {
   try {
     const user = await getSession();
@@ -11,8 +20,7 @@ export async function POST(request: Request) {
       throw new AuthError("Unauthorized — please sign in.", 401);
     }
 
-    const profile = (user.profile as UserProfile | null) ?? null;
-    if (!profile) {
+    if (!user.onboardingDone) {
       throw new AuthError(
         "Please complete onboarding before generating a workout.",
         400
@@ -20,45 +28,51 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const focus = String(body?.focus ?? "general fitness").trim().slice(0, 120);
-    const duration = Number(body?.duration ?? 45);
+    const fitnessLevel = String(
+      body?.fitnessLevel ?? "Intermediate"
+    ).slice(0, 60);
+    const workoutFocus = String(
+      body?.workoutFocus ?? "Hypertrophy Strength"
+    ).slice(0, 80);
+    const equipment = String(body?.equipment ?? "Dumbbells Only").slice(0, 80);
+    const userContext = (body?.userContext ?? {}) as Partial<SafeUser>;
+
+    const age = userContext.age ?? user.age ?? 25;
+    const weight = userContext.weight ?? user.weight ?? 70;
+    const height = userContext.height ?? user.height ?? 175;
 
     const systemPrompt =
-      "You are NutriFit AI, an elite certified personal trainer and exercise scientist. " +
+      "You are the core fitness engine for NutriFit AI. " +
       "You design safe, effective, progressive workout plans tailored to a person's biometrics and goals. " +
       "You ALWAYS respond with strictly valid JSON — no markdown, no commentary.";
 
-    const userPrompt = `Design a single workout session for this person.
-Biometrics & goal:
-- Age: ${profile.age}
-- Sex: ${profile.sex}
-- Height: ${profile.heightCm} cm
-- Weight: ${profile.weightKg} kg
-- Activity level: ${profile.exerciseType}
-- Diet: ${profile.dietPreference}
-- Daily target calories (TDEE): ${profile.targetCalories}
-- Daily step goal: ${profile.stepGoal}
-- Session focus: ${focus}
-- Approximate session duration: ${duration} minutes
+    const userPrompt = `Generate a customized daily workout routine based on:
+- Experience: ${fitnessLevel}
+- Focus: ${workoutFocus}
+- Equipment: ${equipment}
+- User: Age ${age}, Weight ${weight}kg, Height ${height}cm
 
-Return STRICTLY a JSON array of 5 to 8 exercises. Each exercise object MUST have exactly these keys:
-- "id": a unique integer (1, 2, 3, ...)
-- "name": short exercise name (string)
-- "sets": number of sets (integer)
-- "reps": reps or rep range as a string e.g. "8-12" or "30s"
-- "target": primary muscle group targeted (string)
-- "form": one concise sentence on proper form (string)
-
-Respond with ONLY the JSON array. Do not wrap it in markdown fences.`;
+Return ONLY a valid JSON array. No markdown code blocks:
+[
+  {
+    "id": "ex_1",
+    "name": "Exercise name",
+    "sets": 3,
+    "reps": 12,
+    "target": "Muscle group",
+    "form": "How to perform correctly",
+    "avoid": "Safety risks to avoid"
+  }
+]`;
 
     const raw = await aiComplete(systemPrompt, userPrompt);
-    const exercises = extractJSON<Exercise[]>(raw);
+    const plan = extractJSON<Exercise[]>(raw);
 
-    if (!Array.isArray(exercises) || exercises.length === 0) {
+    if (!Array.isArray(plan) || plan.length === 0) {
       throw new AuthError("Could not generate a workout. Please try again.", 502);
     }
 
-    return NextResponse.json({ exercises });
+    return NextResponse.json({ success: true, plan, exercises: plan });
   } catch (err) {
     const status = err instanceof AuthError ? err.status : 500;
     const message =

@@ -11,7 +11,8 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const meal = String(body?.meal ?? "").trim();
+    // Accept both `mealDescription` (original Express shape) and `meal`.
+    const meal = String(body?.mealDescription ?? body?.meal ?? "").trim();
 
     if (meal.length < 2) {
       throw new AuthError("Please describe your meal in a few words.", 400);
@@ -50,7 +51,17 @@ Respond with ONLY the JSON object. Do not wrap it in markdown fences.`;
       throw new AuthError("Could not analyze this meal. Please try again.", 502);
     }
 
-    return NextResponse.json({ estimate });
+    // `analysis` matches the original Express shape; `estimate` is kept for
+    // backwards compatibility. Normalize `tip`/`notes` so both keys exist.
+    const analysis = {
+      calories: estimate.calories,
+      protein: estimate.protein,
+      carbs: estimate.carbs,
+      fat: estimate.fat,
+      tip: estimate.tip ?? estimate.notes ?? "",
+      items: estimate.items ?? [],
+    };
+    return NextResponse.json({ analysis, estimate: analysis });
   } catch (err) {
     const status = err instanceof AuthError ? err.status : 500;
     const message =

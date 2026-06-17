@@ -1,25 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { hashPassword, setAuthCookie, AuthError } from "@/lib/auth";
-import type { SafeUser } from "@/lib/types";
-
-function toSafeUser(user: {
-  id: string;
-  name: string;
-  email: string;
-  onboardingDone: boolean;
-  profile: unknown;
-  createdAt: Date;
-}): SafeUser {
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    onboardingDone: user.onboardingDone,
-    profile: (user.profile as SafeUser["profile"]) ?? null,
-    createdAt: user.createdAt.toISOString(),
-  };
-}
+import { hashPassword, setAuthCookie, toSafeUser, AuthError } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
@@ -29,7 +10,7 @@ export async function POST(request: Request) {
     const password = String(body?.password ?? "");
 
     if (!name || !email || !password) {
-      throw new AuthError("Name, email, and password are required.", 400);
+      throw new AuthError("All fields are required", 400);
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       throw new AuthError("Please enter a valid email address.", 400);
@@ -40,7 +21,7 @@ export async function POST(request: Request) {
 
     const existing = await db.user.findUnique({ where: { email } });
     if (existing) {
-      throw new AuthError("An account with this email already exists.", 409);
+      throw new AuthError("Email already registered", 400);
     }
 
     const hashed = await hashPassword(password);
@@ -55,13 +36,13 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(
-      { user: toSafeUser(user), token },
+      { message: "Registration successful", user: toSafeUser(user), token },
       { status: 201 }
     );
   } catch (err) {
     const status = err instanceof AuthError ? err.status : 500;
     const message =
-      err instanceof Error ? err.message : "Something went wrong.";
-    return NextResponse.json({ error: message }, { status });
+      err instanceof Error ? err.message : "Server error";
+    return NextResponse.json({ message }, { status });
   }
 }

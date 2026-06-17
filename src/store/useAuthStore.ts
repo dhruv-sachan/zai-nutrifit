@@ -13,10 +13,7 @@ type AuthState = {
   view: AppView;
   hasChecked: boolean;
 
-  // navigation
   setView: (view: AppView) => void;
-
-  // lifecycle
   checkAuth: () => Promise<void>;
   login: (email: string, password: string) => Promise<SafeUser>;
   register: (
@@ -27,15 +24,14 @@ type AuthState = {
   logout: () => Promise<void>;
   completeOnboarding: (payload: {
     age: number;
-    sex: string;
-    heightCm: number;
-    weightKg: number;
+    gender?: string;
+    sex?: string;
+    height: number;
+    weight: number;
     stepGoal: number;
     exerciseType: string;
     dietPreference: string;
   }) => Promise<SafeUser>;
-
-  /** Decide the correct view from the current user state. */
   resolveView: () => AppView;
 };
 
@@ -56,7 +52,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   checkAuth: async () => {
     set({ isCheckingAuth: true });
     try {
-      const { user } = await api.profile();
+      // GET /api/user/profile returns the flat user object directly.
+      const user = await api.profile();
       set({
         user,
         isAuthenticated: true,
@@ -65,7 +62,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         hasChecked: true,
       });
     } catch {
-      // Stale or missing token — clear it so we don't keep sending it.
       setToken(null);
       set({
         user: null,
@@ -90,21 +86,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: async () => {
-    try {
-      await api.logout();
-    } catch {
-      // ignore network errors on logout
-    }
-    set({
-      user: null,
-      isAuthenticated: false,
-      view: "landing",
-    });
+    await api.logout();
+    set({ user: null, isAuthenticated: false, view: "landing" });
   },
 
   completeOnboarding: async (payload) => {
     const { user } = await api.onboarding(payload);
-    set({ user, view: "dashboard" });
+    // Inject fresh user directly (mirrors the original Onboarding.jsx
+    // pattern that bypasses cached GET /profile).
+    set({ user, isAuthenticated: true, view: "dashboard" });
     return user;
   },
 

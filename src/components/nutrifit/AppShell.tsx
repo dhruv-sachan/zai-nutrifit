@@ -2,12 +2,13 @@
 
 import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useAuthStore, type AppView } from "@/store/useAuthStore";
-import { Landing } from "./Landing";
-import { AuthPage } from "./AuthPage";
-import { Onboarding } from "./Onboarding";
-import { Dashboard } from "./Dashboard";
+import LandingPage from "@/components/landing/LandingPage";
+import AuthPage from "@/components/auth/AuthPage";
+import Onboarding from "@/components/onboarding/Onboarding";
+import Dashboard from "@/components/dashboard/Dashboard";
+import { MeshBackground } from "./MeshBackground";
 
 /**
  * View router — implements the Public/Protected route contract:
@@ -16,6 +17,10 @@ import { Dashboard } from "./Dashboard";
  *  - Protected views (onboarding, dashboard): unauthenticated users are
  *    sent to auth; authenticated-but-not-onboarded users are forced to
  *    onboarding.
+ *
+ * The landing page renders its own dark cinematic background; the light
+ * glassmorphism views (auth, onboarding) sit on top of the shared
+ * MeshBackground. The dashboard has its own slate-50 canvas.
  */
 function resolveView(
   isAuthenticated: boolean,
@@ -48,9 +53,11 @@ export function AppShell() {
   );
 
   const showLoader = isCheckingAuth && !hasChecked;
+  const showMesh = effectiveView === "auth" || effectiveView === "onboarding";
 
   return (
     <>
+      {showMesh && <MeshBackground />}
       <AnimatePresence mode="wait">
         {showLoader ? (
           <motion.div
@@ -62,7 +69,7 @@ export function AppShell() {
           >
             <div className="nf-glass flex flex-col items-center gap-4 rounded-3xl px-10 py-8">
               <span className="flex size-12 items-center justify-center rounded-2xl nf-btn-gradient">
-                <Activity className="size-6 text-white" />
+                <Loader2 className="size-6 animate-spin text-white" />
               </span>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="size-4 animate-spin" />
@@ -77,8 +84,9 @@ export function AppShell() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
+            className={showMesh ? "relative z-10" : "relative"}
           >
-            {effectiveView === "landing" && <Landing />}
+            {effectiveView === "landing" && <LandingPage />}
             {effectiveView === "auth" && <AuthPage />}
             {effectiveView === "onboarding" && <Onboarding />}
             {effectiveView === "dashboard" && <Dashboard />}

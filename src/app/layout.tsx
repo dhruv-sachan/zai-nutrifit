@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NutriFit — AI-Powered Health & Nutrition",
+  title: "NutriFit — Advancing Nutrition, Transforming Lives",
   description:
-    "NutriFit is a premium, AI-powered health platform. Personalized TDEE & macro targets, AI-generated workouts, and instant meal analysis — all in a beautiful glassmorphism experience.",
+    "NutriFit is a premium, AI-powered health platform. Personalized TDEE & macro targets, AI-generated workouts, an AI Copilot, and instant meal analysis — all in a beautiful glassmorphism experience.",
   keywords: [
     "NutriFit",
     "nutrition",
@@ -26,15 +26,16 @@ export const metadata: Metadata = {
     "macros",
     "workout generator",
     "meal analyzer",
+    "AI copilot",
   ],
   authors: [{ name: "NutriFit" }],
   icons: {
     icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
   },
   openGraph: {
-    title: "NutriFit — AI-Powered Health & Nutrition",
+    title: "NutriFit — Advancing Nutrition, Transforming Lives",
     description:
-      "Personalized TDEE & macro targets, AI workouts, and instant meal analysis.",
+      "Personalized TDEE & macro targets, AI workouts, an AI Copilot, and instant meal analysis.",
     siteName: "NutriFit",
     type: "website",
   },
