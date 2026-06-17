@@ -133,14 +133,25 @@ export function FloatingChatbot() {
           open ? "opacity-0 pointer-events-none" : "opacity-100"
         }`}
       >
-        {/* gradient ring */}
-        <span className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-400 via-teal-400 to-emerald-400" />
-        {/* white inner */}
-        <span className="absolute inset-[3px] rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center overflow-hidden">
-          <img
+        {/* Pulsing gradient halo behind the button */}
+        <motion.span
+          className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-400 via-teal-400 to-emerald-400"
+          animate={{ scale: [1, 1.12, 1], opacity: [0.55, 0.85, 0.55] }}
+          transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+        />
+        {/* White inner disc — holds the icon, fills the circle */}
+        <span className="absolute inset-[3px] rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center overflow-hidden">
+          <motion.img
             src="/chatbot-icon.png"
             alt=""
-            className="size-9 object-contain"
+            // Fill the disc edge-to-edge; the wide 4:3 icon crops nicely.
+            className="w-[140%] h-[140%] object-cover"
+            animate={{
+              y: [0, -2.5, 0],
+              rotate: [-3, 3, -3],
+              scale: [1, 1.06, 1],
+            }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           />
         </span>
         {/* live-pulse ping */}
@@ -178,10 +189,15 @@ export function FloatingChatbot() {
                 <div className="flex items-center gap-2.5">
                   <div className="relative">
                     <div className="size-9 rounded-xl overflow-hidden bg-gradient-to-br from-cyan-100 to-emerald-100 flex items-center justify-center border border-white/60">
-                      <img
+                      <motion.img
                         src="/chatbot-icon.png"
                         alt=""
-                        className="size-7 object-contain"
+                        className="w-[130%] h-[130%] object-cover"
+                        animate={{
+                          y: [0, -1.5, 0],
+                          rotate: [-2, 2, -2],
+                        }}
+                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                       />
                     </div>
                     <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
@@ -239,7 +255,7 @@ export function FloatingChatbot() {
                             <img
                               src="/chatbot-icon.png"
                               alt=""
-                              className="size-5 object-contain"
+                              className="w-[120%] h-[120%] object-cover"
                             />
                           ) : (
                             <span className="text-[10px] font-black uppercase">
@@ -278,10 +294,12 @@ export function FloatingChatbot() {
                       className="flex gap-2.5 text-left"
                     >
                       <div className="shrink-0 size-8 rounded-lg flex items-center justify-center overflow-hidden bg-linear-to-br from-cyan-100 to-emerald-100 border border-white/60">
-                        <img
+                        <motion.img
                           src="/chatbot-icon.png"
                           alt=""
-                          className="size-5 object-contain"
+                          className="w-[120%] h-[120%] object-cover"
+                          animate={{ rotate: [-2, 2, -2] }}
+                          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                         />
                       </div>
                       <div className="nf-glass border border-white/50 p-3.5 rounded-2xl rounded-tl-sm flex items-center gap-1.5">
