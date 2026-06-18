@@ -12,9 +12,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
  */
 
 // --- Gemini (production) ---
-let geminiModel: ReturnType<
-  GoogleGenerativeAI["getGenerativeModel"]
-> | null = null;
+let geminiModel: ReturnType<GoogleGenerativeAI["getGenerativeModel"]> | null =
+  null;
 
 function getGeminiModel() {
   if (geminiModel) return geminiModel;
@@ -44,20 +43,20 @@ async function getZAI(): Promise<ZAI> {
  */
 export async function aiComplete(
   systemPrompt: string,
-  userPrompt: string
+  userPrompt: string,
 ): Promise<string> {
   // Prefer Gemini in production.
   const model = getGeminiModel();
   if (model) {
     try {
       const result = await model.generateContent(
-        `${systemPrompt}\n\n${userPrompt}`
+        `${systemPrompt}\n\n${userPrompt}`,
       );
       const text = result.response.text();
       if (text && text.trim()) return text.trim();
     } catch (err) {
-      console.error("Gemini completion failed, falling back:", err);
-      // fall through to z-ai SDK if Gemini errors
+      console.error("Gemini completion failed:", err);
+      throw err;
     }
   }
 
@@ -109,7 +108,8 @@ export function extractJSON<T = unknown>(raw: string): T {
   if (start === -1) throw new Error("No JSON found in AI response");
 
   const end = candidate.lastIndexOf(closeChar);
-  if (end === -1 || end < start) throw new Error("Malformed JSON in AI response");
+  if (end === -1 || end < start)
+    throw new Error("Malformed JSON in AI response");
 
   const slice = candidate.slice(start, end + 1);
   return JSON.parse(slice) as T;
@@ -129,7 +129,7 @@ export function extractJSON<T = unknown>(raw: string): T {
 export async function aiAnalyzeImage(
   imageBase64: string,
   mimeType: string,
-  prompt: string
+  prompt: string,
 ): Promise<string> {
   // --- Gemini Vision (production) ---
   const model = getGeminiModel();
@@ -147,8 +147,8 @@ export async function aiAnalyzeImage(
       const text = result.response.text();
       if (text && text.trim()) return text.trim();
     } catch (err) {
-      console.error("Gemini Vision failed, falling back:", err);
-      // fall through to z-ai SDK
+      console.error("Gemini Vision failed:", err);
+      throw err;
     }
   }
 
