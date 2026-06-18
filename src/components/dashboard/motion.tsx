@@ -39,6 +39,10 @@ export const springSoft = { type: "spring" as const, stiffness: 320, damping: 26
 /**
  * GlassCard — the signature premium 2026 surface.
  * Frosted glass + gradient inner border + hover lift + optional aurora border.
+ *
+ * Uses `animate` (not `whileInView`) so cards appear immediately on mount
+ * — important because dashboard tabs mount inside AnimatePresence where
+ * IntersectionObserver may not fire reliably.
  */
 export function GlassCard({
   children,
@@ -57,8 +61,7 @@ export function GlassCard({
     <motion.div
       variants={riseItem}
       initial="hidden"
-      whileInView="show"
-      viewport={{ once: true, margin: "-40px" }}
+      animate="show"
       transition={{ delay }}
       whileHover={hover ? { y: -4 } : undefined}
       className={`nf-premium rounded-3xl ${aurora ? "nf-aurora-border" : ""} ${className}`}

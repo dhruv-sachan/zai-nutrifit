@@ -233,7 +233,7 @@ export default function TracksTab() {
                   <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
-                      whileInView={{ width: `${caloriePct}%` }}
+                      animate={{ width: `${caloriePct}%` }}
                       viewport={{ once: true }}
                       transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
                       className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-teal-500"
@@ -251,7 +251,7 @@ export default function TracksTab() {
                   <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
-                      whileInView={{ width: `${proteinPct}%` }}
+                      animate={{ width: `${proteinPct}%` }}
                       viewport={{ once: true }}
                       transition={{ duration: 0.9, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
                       className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-500"

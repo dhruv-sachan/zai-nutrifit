@@ -39,7 +39,7 @@ export default function Sidebar({
   const logout = useAuthStore((s) => s.logout);
 
   return (
-    <aside className="hidden lg:flex w-72 h-screen fixed left-0 top-0 flex-col z-50 p-5 nf-premium rounded-none border-r border-white/40 bg-gradient-to-b from-white/80 via-white/55 to-white/40">
+    <aside className="hidden lg:flex w-72 shrink-0 h-screen fixed left-0 top-0 flex-col z-50 p-5 nf-premium rounded-none border-r border-white/40 bg-gradient-to-b from-white/80 via-white/55 to-white/40">
       {/* Brand */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}

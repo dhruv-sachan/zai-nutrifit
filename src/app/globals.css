@@ -340,7 +340,6 @@ html {
 
 /* Aurora gradient border card — the signature premium surface */
 .nf-premium {
-  position: relative;
   background: oklch(1 0 0 / 0.72);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);

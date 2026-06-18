@@ -772,7 +772,7 @@ export default function NutritionTab() {
           <motion.div
             variants={staggerContainer}
             initial="hidden"
-            whileInView="show"
+            animate="show"
             viewport={{ once: true }}
             className="space-y-3.5 pt-1"
           >

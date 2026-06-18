@@ -36,7 +36,7 @@ export default function DashboardLayout({
   const logout = useAuthStore((s) => s.logout);
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative min-h-screen flex flex-col">
       {/* Ambient background orbs for depth */}
       <div className="pointer-events-none fixed inset-0 -z-10">
         <div
@@ -117,9 +117,9 @@ export default function DashboardLayout({
         </div>
       </div>
 
-      {/* Fluid Main Content */}
-      <main className="lg:pl-72 p-4 sm:p-6 lg:p-8 min-h-screen flex flex-col">
-        <div className="max-w-7xl mx-auto w-full flex-1">
+      {/* Main Content — sidebar offset on desktop, full-width on mobile */}
+      <main className="lg:pl-72 flex-1 flex flex-col w-full min-h-screen">
+        <div className="flex-1 w-full p-4 sm:p-6 lg:p-8">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -127,16 +127,15 @@ export default function DashboardLayout({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              className="w-full"
             >
               {children}
             </motion.div>
           </AnimatePresence>
         </div>
-        <footer className="mt-auto pt-8 pb-2 text-center text-xs text-slate-400 font-semibold">
-          <div className="max-w-7xl mx-auto px-2">
-            NutriFit — Your AI health companion. Targets are estimates; consult a
-            professional for medical advice.
-          </div>
+        <footer className="mt-auto pt-8 pb-4 text-center text-xs text-slate-400 font-semibold px-4">
+          NutriFit — Your AI health companion. Targets are estimates; consult a
+          professional for medical advice.
         </footer>
       </main>
 
