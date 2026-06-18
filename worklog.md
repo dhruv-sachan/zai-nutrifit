@@ -447,3 +447,27 @@ Stage Summary:
   4. Import repo on Vercel, add env vars (DATABASE_URL, JWT_SECRET, GEMINI_API_KEY, GEMINI_MODEL)
   5. Deploy, then run `db:push` against the prod DB to create tables
 - Full details in DEPLOY.md. The AI layer auto-detects Gemini vs sandbox, so the same code runs in both. SQLite limitation on Vercel (ephemeral FS) is the reason for the Postgres swap — documented clearly.
+
+---
+Task ID: POSTGRES-SWAP
+Agent: orchestrator (main)
+Task: Switch the deployment target to PostgreSQL (for Vercel) while keeping the sandbox on SQLite
+
+Work Log:
+- Discovered constraint: this sandbox can't reach external Postgres (port 5432 blocked), so flipping the provider to postgresql outright would break local dev here.
+- Tried `provider = env("DATABASE_PROVIDER")` in schema.prisma → Prisma rejects env() in the provider field (P1012). Reverted.
+- Solution: DUAL SCHEMA FILES + a select script.
+  • prisma/schema.sqlite.prisma (stable SQLite source, identical models)
+  • prisma/schema.postgres.prisma (PostgreSQL variant, identical models)
+  • scripts/select-schema.js: copies the right one to prisma/schema.prisma based on DATABASE_PROVIDER env var (sqlite default, postgresql for Vercel). Also accepts a CLI arg to force (postgres/sqlite).
+- package.json: wired select-schema.js into postinstall, build, db:push, db:generate, db:migrate, db:reset. Added db:use-postgres convenience script. So Vercel's build auto-selects Postgres when DATABASE_PROVIDER=postgresql is set — no manual schema editing.
+- .env: added DATABASE_PROVIDER=sqlite (sandbox). .env.example: documents both modes.
+- DEPLOY.md: rewrote Step 3 (no code edits — just set DATABASE_PROVIDER on Vercel), updated Step 4 env table (+DATABASE_PROVIDER), Step 5 db:push (export DATABASE_PROVIDER=postgresql locally to push to prod), env reference table.
+- Verified both paths:
+  • sqlite: select-schema → generate → push → login → dashboard works (Riley session intact).
+  • postgres: select-schema postgres → schema.prisma now says provider="postgresql" → prisma generate succeeds (no DB needed for generate) → restored to sqlite.
+- Lint 0 errors, tsc 0 errors in src/, server 200.
+- Committed (8 files): schema.sqlite.prisma, schema.postgres.prisma, schema.prisma (now sqlite with explanatory comment), select-schema.js, package.json, .env.example, .gitignore, DEPLOY.md. (Excluded .env from commit — local only.)
+
+Stage Summary:
+- The repo now deploys to PostgreSQL on Vercel with ZERO code/schema edits — just set DATABASE_PROVIDER=postgresql + DATABASE_URL=your-postgres-string in Vercel env vars, and the build auto-swaps the Prisma schema. The sandbox stays on SQLite (local dev unaffected). User's deploy path is in DEPLOY.md Steps 1-6.
