@@ -17,6 +17,7 @@
  */
 const fs = require("fs");
 const path = require("path");
+require("dotenv").config();
 
 const prismaDir = path.join(__dirname, "..", "prisma");
 const target = path.join(prismaDir, "schema.prisma");
@@ -29,8 +30,8 @@ let provider =
   forced === "postgres" || forced === "postgresql"
     ? "postgresql"
     : forced === "sqlite"
-    ? "sqlite"
-    : process.env.DATABASE_PROVIDER || "sqlite";
+      ? "sqlite"
+      : process.env.DATABASE_PROVIDER || "sqlite";
 
 // Normalize — treat anything that isn't explicitly "postgresql" as sqlite
 // (safe default for local dev).
@@ -41,7 +42,7 @@ if (provider !== "postgresql") provider = "sqlite";
 if (provider === "postgresql") {
   if (!fs.existsSync(postgresSrc)) {
     console.error(
-      "✗ prisma/schema.postgres.prisma not found. Falling back to sqlite."
+      "✗ prisma/schema.postgres.prisma not found. Falling back to sqlite.",
     );
     process.exit(0);
   }
