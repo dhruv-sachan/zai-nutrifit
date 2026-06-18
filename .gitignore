@@ -51,5 +51,12 @@ test
 prompt
 
 server.log
-# Skills directory
+
+# Scaffold artifacts (not part of NutriFit)
 /skills/
+/examples/
+/download/
+/tool-results/
+/.zscripts/
+/upload/
+mini-services/
