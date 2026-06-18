@@ -432,6 +432,19 @@ export const api = {
     );
   },
 
+  /** POST /api/ai/analyze-meal-photo — AI vision meal analysis from a photo. */
+  analyzeMealPhoto: async (image: string, mimeType: string) => {
+    if (!isOnline()) {
+      throw new OfflineError(
+        "Photo analysis needs a connection. Please reconnect to analyze meal photos."
+      );
+    }
+    return request<{ analysis: MealEstimate }>(
+      "/api/ai/analyze-meal-photo",
+      { method: "POST", body: JSON.stringify({ image, mimeType }) }
+    );
+  },
+
   chat: async (payload: {
     message: string;
     userContext?: Partial<SafeUser>;

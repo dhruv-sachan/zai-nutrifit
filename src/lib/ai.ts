@@ -114,3 +114,60 @@ export function extractJSON<T = unknown>(raw: string): T {
   const slice = candidate.slice(start, end + 1);
   return JSON.parse(slice) as T;
 }
+
+/**
+ * Analyze a meal photo with AI vision and return structured nutrition data.
+ *
+ * Uses Gemini Vision (inline image part) when GEMINI_API_KEY is set,
+ * otherwise falls back to the z-ai-web-dev-sdk vision endpoint.
+ *
+ * @param imageBase64 — base64-encoded image data (no data: prefix)
+ * @param mimeType — e.g. "image/jpeg", "image/png"
+ * @param prompt — the instruction for the vision model
+ * @returns raw text response (caller parses JSON via extractJSON)
+ */
+export async function aiAnalyzeImage(
+  imageBase64: string,
+  mimeType: string,
+  prompt: string
+): Promise<string> {
+  // --- Gemini Vision (production) ---
+  const model = getGeminiModel();
+  if (model) {
+    try {
+      const result = await model.generateContent([
+        { text: prompt },
+        {
+          inlineData: {
+            mimeType,
+            data: imageBase64,
+          },
+        },
+      ]);
+      const text = result.response.text();
+      if (text && text.trim()) return text.trim();
+    } catch (err) {
+      console.error("Gemini Vision failed, falling back:", err);
+      // fall through to z-ai SDK
+    }
+  }
+
+  // --- z-ai SDK vision fallback (sandbox) ---
+  const zai = await getZAI();
+  const dataUrl = `data:${mimeType};base64,${imageBase64}`;
+  const completion = await zai.chat.completions.createVision({
+    model: "glm-4.6v",
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: prompt },
+          { type: "image_url", image_url: { url: dataUrl } },
+        ],
+      },
+    ],
+    thinking: { type: "disabled" },
+  });
+  const content = completion.choices?.[0]?.message?.content ?? "";
+  return content.trim();
+}
