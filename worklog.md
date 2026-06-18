@@ -522,3 +522,26 @@ Verification (Agent Browser):
 
 Stage Summary:
 - Phase 5 complete and committed. The AI Copilot now has true conversational memory (remembers last 10 messages + recent meals + weekly progress) and the Analytics tab has an AI Weekly Report generator with adherence scoring, insights, and recommendations. Next up: Phase 6 (food photo analysis via Gemini Vision).
+
+---
+Task ID: PHASE-6
+Agent: orchestrator (main)
+Task: Food photo analysis via Gemini Vision — the final roadmap phase
+
+Work Log:
+- src/lib/ai.ts: added aiAnalyzeImage() — dual-provider AI vision support. Uses Gemini Vision (inline image part via model.generateContent([{text}, {inlineData:{mimeType,data}}])) when GEMINI_API_KEY is set; falls back to z-ai-web-dev-sdk createVision (glm-4.6v model) in the sandbox. Returns raw text for JSON extraction.
+- src/app/api/ai/analyze-meal-photo/route.ts (NEW): accepts {image (base64), mimeType}, auth-required, validates image size (max 5MB), sends to aiAnalyzeImage with a structured JSON prompt requesting {calories, protein, carbs, fat, items[], tip}. Returns the analysis.
+- src/lib/api.ts: added api.analyzeMealPhoto(image, mimeType) — online-only with friendly OfflineError.
+- src/components/dashboard/NutritionTab.tsx: added "Snap a Photo" card section with:
+  • Hidden file input (accept=image/*, capture=environment for mobile camera)
+  • Dashed upload dropzone with Camera icon + "Tap to upload or take a photo"
+  • Image preview with X remove button
+  • "Analyze Photo" button (shimmer + loading spinner)
+  • Spring-animated result panel: 4 count-up macro cards, detected food item chips, nutrition tip, "Save to Daily Log" button (saves to Dexie daily logs + meal history)
+
+Verification:
+- Tested the API directly via curl (bypassing a CDP/FileReader headless browser limitation): POST /api/ai/analyze-meal-photo 200 in 5.6s. The AI vision correctly identified food items ("grilled chicken breast, quinoa, mixed greens salad with vinaigrette, sliced avocado, strawberries") from a meal image and returned structured macros (350 kcal, P15g, C45g, F12g) + a nutrition tip ("Add a small handful of nuts or seeds for extra healthy fats").
+- ESLint: 0 errors. tsc: 0 errors in src/.
+
+Stage Summary:
+- Phase 6 complete and committed. The AI Meal Analyzer now supports BOTH text descriptions AND photo analysis via Gemini Vision. Users can snap a photo of their meal and get instant calorie/macro estimates with identified food items. This was the final phase of the roadmap. The project is now a complete "AI-powered Local-First Nutrition Platform" with all 6 phases delivered.
