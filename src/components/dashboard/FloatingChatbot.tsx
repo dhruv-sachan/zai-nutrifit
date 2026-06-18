@@ -57,12 +57,28 @@ export function FloatingChatbot() {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
+  // Load persisted chat history from Dexie on mount (survives reloads).
+  useEffect(() => {
+    void (async () => {
+      try {
+        const { getChatHistory } = await import("@/lib/api");
+        const history = await getChatHistory();
+        if (history.length > 0) {
+          setMessages(history.map((m) => ({ role: m.role, text: m.text })));
+        }
+      } catch {
+        // ignore — keep default greeting
+      }
+      setHistoryLoaded(true);
+    })();
+  }, []);
+
   useEffect(() => {
     if (open) {
-      // Focus the input shortly after the panel mounts.
       const t = setTimeout(() => inputRef.current?.focus(), 250);
       return () => clearTimeout(t);
     }
@@ -90,6 +106,14 @@ export function FloatingChatbot() {
     setInput("");
     setIsLoading(true);
 
+    // Persist user message to Dexie (chat history survives reloads).
+    try {
+      const { addChatMessage } = await import("@/lib/api");
+      void addChatMessage("user", messageText);
+    } catch {
+      // ignore persistence errors
+    }
+
     try {
       const userContext = {
         age: user?.age,
@@ -106,12 +130,25 @@ export function FloatingChatbot() {
         ...prev,
         { role: "assistant", text: response.reply },
       ]);
+      // Persist AI reply to Dexie.
+      try {
+        const { addChatMessage } = await import("@/lib/api");
+        void addChatMessage("assistant", response.reply);
+      } catch {
+        // ignore
+      }
     } catch (err) {
       const text =
         err instanceof Error && err.message
           ? err.message
           : "I couldn't reach the AI service. Please try again.";
       setMessages((prev) => [...prev, { role: "assistant", text }]);
+      try {
+        const { addChatMessage } = await import("@/lib/api");
+        void addChatMessage("assistant", text);
+      } catch {
+        // ignore
+      }
     } finally {
       setIsLoading(false);
     }
