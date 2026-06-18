@@ -104,6 +104,11 @@ export async function processSyncQueue(): Promise<{
         break;
       }
     }
+    // If anything succeeded (or the queue was empty and we're online),
+    // stamp the last-synced time.
+    if (succeeded > 0 || pending.length === 0) {
+      setLastSyncedAt(Date.now());
+    }
     return { processed: pending.length, succeeded, failed };
   } finally {
     syncing = false;
@@ -124,10 +129,58 @@ export function startBackgroundSync(): () => void {
   const onOnline = () => void processSyncQueue();
   window.addEventListener("online", onOnline);
 
+  // Listen for the service worker's Background Sync message — fires when
+  // the browser detects connectivity (even if the tab was closed/reopened).
+  const onSWMessage = (event: MessageEvent) => {
+    if (event.data && event.data.type === "NUTRIFIT_SYNC") {
+      void processSyncQueue();
+    }
+  };
+  if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+    navigator.serviceWorker.addEventListener("message", onSWMessage);
+  }
+
   return () => {
     clearInterval(interval);
     window.removeEventListener("online", onOnline);
+    if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.removeEventListener("message", onSWMessage);
+    }
   };
+}
+
+// --- lastSyncedAt tracking (localStorage — single timestamp) ---
+
+const LAST_SYNCED_KEY = "nutrifit_last_synced";
+
+export function getLastSyncedAt(): number | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const ts = Number(localStorage.getItem(LAST_SYNCED_KEY) ?? 0);
+    return ts || null;
+  } catch {
+    return null;
+  }
+}
+
+function setLastSyncedAt(ts: number) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(LAST_SYNCED_KEY, String(ts));
+  } catch {
+    // ignore
+  }
+}
+
+/** Returns a human-readable "last synced" label. */
+export function getLastSyncedLabel(): string {
+  const ts = getLastSyncedAt();
+  if (!ts) return "Never";
+  const diff = Date.now() - ts;
+  if (diff < 60_000) return "Just now";
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
+  return new Date(ts).toLocaleDateString();
 }
 
 /** Pull the latest user profile + weekly logs FROM the server into Dexie

@@ -29,7 +29,30 @@ export async function enqueue(
     attempts: 0,
   };
   await d.syncQueue.add(entry);
+
+  // Register a background sync so the browser retries when online —
+  // even if the tab was closed. Best-effort (not all browsers support it).
+  registerBackgroundSync();
+
   return entry;
+}
+
+/** Ask the service worker to register a background sync tag. */
+function registerBackgroundSync() {
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.ready
+    .then((reg) => {
+      const syncReg = reg as ServiceWorkerRegistration & {
+        sync?: { register: (tag: string) => Promise<void> };
+      };
+      if (syncReg.sync) {
+        return syncReg.sync.register("nutrifit-sync");
+      }
+    })
+    .catch(() => {
+      // Background sync not supported — the 60s interval + online event
+      // still handle sync.
+    });
 }
 
 /** Get all pending sync entries, oldest first. */
