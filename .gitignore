@@ -64,3 +64,8 @@ server.log
 /.zscripts/
 /upload/
 mini-services/
+
+# Archives
+*.zip
+*.rar
+*.7z
