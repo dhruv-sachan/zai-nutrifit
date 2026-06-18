@@ -125,7 +125,26 @@ export function FloatingChatbot() {
         targetCalories: user?.targetCalories,
         macros: user?.macros,
       };
-      const response = await api.chat({ message: messageText, userContext });
+
+      // Gather memory context: recent logs + today's meals + chat history.
+      // This gives the AI full conversational memory + progress awareness.
+      let recentLogs: { date: string; calories: number; protein: number; carbs: number; fat: number; steps: number }[] = [];
+      let todayMeals: { text: string; calories: number; protein: number; carbs: number; fat: number }[] = [];
+      try {
+        recentLogs = await api.weeklyLogs();
+      } catch { /* ignore */ }
+      try {
+        const { getMealsForToday } = await import("@/lib/api");
+        todayMeals = await getMealsForToday();
+      } catch { /* ignore */ }
+
+      const response = await api.chat({
+        message: messageText,
+        userContext,
+        chatHistory: messages.slice(-10).map((m) => ({ role: m.role, text: m.text })),
+        recentLogs,
+        todayMeals,
+      });
       setMessages((prev) => [
         ...prev,
         { role: "assistant", text: response.reply },

@@ -435,6 +435,22 @@ export const api = {
   chat: async (payload: {
     message: string;
     userContext?: Partial<SafeUser>;
+    chatHistory?: { role: "assistant" | "user"; text: string }[];
+    recentLogs?: {
+      date: string;
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+      steps: number;
+    }[];
+    todayMeals?: {
+      text: string;
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+    }[];
   }): Promise<{ reply: string }> => {
     if (!isOnline()) {
       throw new OfflineError(
@@ -442,6 +458,39 @@ export const api = {
       );
     }
     return request<{ reply: string }>("/api/ai/chat", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  /** POST /api/ai/weekly-report — AI-generated weekly nutrition summary. */
+  weeklyReport: async (payload: {
+    userContext?: Partial<SafeUser>;
+    recentLogs: {
+      date: string;
+      calories: number;
+      protein: number;
+      carbs: number;
+      fat: number;
+      steps: number;
+    }[];
+  }): Promise<{
+    summary: string;
+    insights: string[];
+    recommendations: string[];
+    adherenceScore: number;
+  }> => {
+    if (!isOnline()) {
+      throw new OfflineError(
+        "Weekly report generation needs a connection."
+      );
+    }
+    return request<{
+      summary: string;
+      insights: string[];
+      recommendations: string[];
+      adherenceScore: number;
+    }>("/api/ai/weekly-report", {
       method: "POST",
       body: JSON.stringify(payload),
     });
