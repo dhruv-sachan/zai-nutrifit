@@ -498,3 +498,27 @@ Verification (Agent Browser):
 
 Stage Summary:
 - Phase 3 + 4 complete and committed. The app now has: Background Sync API (writes sync even after tab close), a live sync status indicator in the sidebar (pending/syncing/synced/offline), lastSyncedAt tracking, and a full Smart Reminders system (water/meal/workout notifications with toggles + time picker in Settings). Next up per the roadmap: Phase 5 (AI Nutrition Coach with chat history + memory + weekly reports) and Phase 6 (food photo analysis via Gemini Vision).
+
+---
+Task ID: PHASE-5
+Agent: orchestrator (main)
+Task: AI Nutrition Coach with chat memory + weekly reports
+
+Work Log:
+Chat Memory:
+- Rewrote /api/ai/chat route to accept chatHistory (last 10 messages), recentLogs (last 7 days of daily logs), and todayMeals (meals logged today). The system prompt now includes: user profile section, recent progress section (with day-by-day calorie/macro/steps + average + adherence %), meals logged today section, and conversation history section. The AI can reference specific meals, progress trends, and previous questions.
+- Updated FloatingChatbot's handleSendMessage to gather recentLogs (via api.weeklyLogs) + todayMeals (via getMealsForToday) + chatHistory (messages.slice(-10)) before each API call. The AI now has full conversational + nutritional memory.
+- Updated api.chat() to accept the new fields (chatHistory, recentLogs, todayMeals).
+
+Weekly Reports:
+- Created /api/ai/weekly-report route: takes week's logs + user profile, computes averages + adherence, sends to AI with a structured JSON prompt. Returns {summary, insights[], recommendations[], adherenceScore}. Returns a friendly fallback when no logs exist.
+- Added api.weeklyReport() method to the client API layer.
+- Added "AI Weekly Report" section to AnalyticsTab: Generate button (with shimmer + loading state), animated adherence score ring (SVG stroke-draw, color-coded green≥70/amber≥40/red<40), summary card, staggered insights list (Lightbulb icon), staggered recommendations list (Target icon). Full spring-animated reveal when the report arrives.
+
+Verification (Agent Browser):
+- Chat memory: sent "My name is Riley and I want to eat more protein." → AI replied with profile-aware advice. Sent follow-up "What did I just tell you my name was?" → AI replied: "You just told me your name is Riley, which I've noted in your profile. I see you're a 33-year-old male, 78kg and 180cm tall, working on core stability and rehabilitation exercises. You mentioned wanting to increase your protein..." ✓ The AI remembers the conversation AND references the user's profile + stated goal.
+- Weekly report: clicked Generate Report → API returned 200 → report rendered with adherence score (0, since no Dexie logs yet), summary, insights, recommendations. The "no logs" fallback worked correctly. ✓
+- ESLint: 0 errors. tsc: 0 errors in src/.
+
+Stage Summary:
+- Phase 5 complete and committed. The AI Copilot now has true conversational memory (remembers last 10 messages + recent meals + weekly progress) and the Analytics tab has an AI Weekly Report generator with adherence scoring, insights, and recommendations. Next up: Phase 6 (food photo analysis via Gemini Vision).
